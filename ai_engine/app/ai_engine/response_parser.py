@@ -1,0 +1,108 @@
+"""
+Response parsing and validation module.
+Handles parsing and validating Gemini API responses.
+"""
+
+import json
+import logging
+from typing import Dict, Any, Optional
+from utils.exceptions import ResponseParsingError
+from config.logger import setup_logger
+
+logger = setup_logger(__name__)
+
+
+class ResponseParser:
+    """Parse and validate API responses."""
+    
+    @staticmethod
+    def parse_json_response(response_text: str) -> Dict[str, Any]:
+        """
+        Extract and parse JSON from response text.
+        
+        Args:
+            response_text: Raw response text from API
+        
+        Returns:
+            Parsed JSON as dictionary
+        
+        Raises:
+            ResponseParsingError: If parsing fails
+        """
+        if not response_text or not response_text.strip():
+            raise ResponseParsingError("Empty response text")
+        
+        try:
+            # Try direct JSON parsing first
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            logger.debug("Direct JSON parsing failed, attempting extraction")
+        
+        try:
+            # Try extracting JSON from markdown code blocks
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                if json_end != -1:
+                    json_str = response_text[json_start:json_end].strip()
+                    return json.loads(json_str)
+            
+            # Try extracting from regular code blocks
+            if "```" in response_text:
+                json_start = response_text.find("```") + 3
+                json_end = response_text.find("```", json_start)
+                if json_end != -1:
+                    json_str = response_text[json_start:json_end].strip()
+                    return json.loads(json_str)
+        
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON extraction failed: {e}")
+        
+        raise ResponseParsingError("Could not extract valid JSON from response")
+    
+    @staticmethod
+    def validate_physics_response(
+        data: Dict[str, Any],
+        required_fields: Optional[list] = None
+    ) -> bool:
+        """
+        Validate physics explanation response structure.
+        
+        Args:
+            data: Response data to validate
+            required_fields: List of required field names
+        
+        Returns:
+            True if valid
+        
+        Raises:
+            ResponseParsingError: If validation fails
+        """
+        if required_fields is None:
+            required_fields = [
+                "topic",
+                "difficulty",
+                "explanation",
+                "key_points",
+                "diagram_prompt",
+                "animation_prompt",
+                "simulation_prompt",
+                "narration_script",
+                "follow_up_questions"
+            ]
+        
+        if not isinstance(data, dict):
+            raise ResponseParsingError("Response must be a dictionary")
+        
+        missing_fields = [f for f in required_fields if f not in data]
+        if missing_fields:
+            raise ResponseParsingError(f"Missing required fields: {missing_fields}")
+        
+        # Type validation
+        if not isinstance(data.get("key_points"), list):
+            raise ResponseParsingError("key_points must be a list")
+        
+        if not isinstance(data.get("follow_up_questions"), list):
+            raise ResponseParsingError("follow_up_questions must be a list")
+        
+        return True

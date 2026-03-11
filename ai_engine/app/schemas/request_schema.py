@@ -10,29 +10,13 @@ class ExplanationRequest(BaseModel):
     """Request schema for explanation endpoint."""
 
     question: str = Field(..., min_length=5, max_length=1000, description="Question or concept to explain")
-    difficulty: Optional[str] = Field(
-        default="beginner",
-        description="Difficulty level: beginner, intermediate, advanced, or expert"
-    )
-
-    @field_validator('difficulty')
-    @classmethod
-    def validate_difficulty(cls, v: str) -> str:
-        """Validate difficulty level."""
-        valid_levels = {"beginner", "intermediate", "advanced", "expert"}
-        level = v.lower().strip()
-
-        if level not in valid_levels:
-            raise ValueError(f"Difficulty must be one of: {', '.join(valid_levels)}")
-
-        return level
+    model_name: Optional[str] = Field(None, description="Model to use for generation")
 
     class Config:
         """Pydantic config."""
         json_schema_extra = {
             "example": {
-                "question": "Explain quantum tunneling and its applications",
-                "difficulty": "intermediate"
+                "question": "Explain quantum tunneling and its applications"
             }
         }
 
@@ -42,6 +26,7 @@ class ImageAnalysisRequest(BaseModel):
 
     question: str = Field(..., min_length=5, max_length=500, description="Question about the image")
     context: Optional[str] = Field(None, max_length=500, description="Additional context")
+    model_name: Optional[str] = Field(None, description="Model to use for image analysis")
 
     class Config:
         """Pydantic config."""
@@ -57,7 +42,6 @@ class BulkExplanationRequest(BaseModel):
     """Request schema for bulk explanation endpoint."""
 
     questions: list[str] = Field(..., max_length=10, description="List of questions")
-    difficulty: Optional[str] = Field(default="beginner", description="Difficulty level")
 
     @field_validator('questions')
     @classmethod
@@ -82,7 +66,6 @@ class BulkExplanationRequest(BaseModel):
                 "questions": [
                     "What is Newton's first law of motion?",
                     "Explain gravitational force"
-                ],
-                "difficulty": "beginner"
+                ]
             }
         }

@@ -7,13 +7,17 @@ from fastapi import APIRouter, HTTPException, status, Query, File, UploadFile
 from typing import Optional, List
 import logging
 import tempfile
+import base64
 from pathlib import Path
+
+from google import genai
+from config.settings import get_settings
 
 from ai_engine.explanation_generator import ExplanationGenerator
 from ai_engine.multimodal_handler import MultiModalHandler
+from ai_engine.gemini_client import get_gemini_client
 from utils.exceptions import AIEngineException
 from schemas.request_schema import ExplanationRequest
-from schemas.response_schema import ExplanationResponse
 from utils.validators import validate_request_input, sanitize_question
 from config.logger import setup_logger
 
@@ -22,6 +26,63 @@ logger = setup_logger(__name__)
 router = APIRouter(tags=["Explanations"])
 
 
+# ─── Dynamic Model Listing ──────────────────────────────────────────────────
+
+@router.get(
+    "/models",
+    summary="List Available Models",
+    description="Fetch available Gemini text models, image models, and audio voices"
+)
+async def list_models() -> dict:
+    """List available models from the Gemini API and supported voices."""
+    try:
+        text_models = []
+        image_models = []
+        
+        settings = get_settings()
+        client = genai.Client(api_key=settings.gemini_api_key)
+        
+        for m in client.models.list():
+            info = {
+                "name": m.name.replace("models/", ""),
+                "display_name": m.display_name,
+                "description": getattr(m, "description", ""),
+            }
+            methods = getattr(m, "supported_generation_methods", [])
+            methods_str = [str(method) for method in methods]
+            
+            if "generateContent" in methods_str:
+                text_models.append(info)
+            if "generateImages" in methods_str or "imagen" in m.name.lower():
+                image_models.append(info)
+        
+        # Audio voices are from GCP TTS — not discoverable via genai SDK
+        audio_voices = [
+            {"name": "en-US-Journey-D", "display_name": "Journey (US Male)"},
+            {"name": "en-US-Journey-F", "display_name": "Journey (US Female)"},
+            {"name": "en-US-Standard-A", "display_name": "Standard (US Male)"},
+            {"name": "en-US-Standard-C", "display_name": "Standard (US Female)"},
+            {"name": "en-GB-Standard-A", "display_name": "Standard (UK Female)"},
+            {"name": "en-GB-Standard-B", "display_name": "Standard (UK Male)"},
+            {"name": "en-AU-Standard-A", "display_name": "Standard (AU Female)"},
+        ]
+        
+        return {
+            "status": "success",
+            "text_models": text_models,
+            "image_models": image_models,
+            "audio_voices": audio_voices,
+        }
+    except Exception as e:
+        logger.error(f"Error listing models: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to list models"
+        )
+
+
+# ─── Explain ─────────────────────────────────────────────────────────────────
+
 @router.post(
     "/explain",
     response_model=dict,
@@ -29,20 +90,11 @@ router = APIRouter(tags=["Explanations"])
     description="Generate a comprehensive explanation for any concept or question"
 )
 async def explain_concept(request: ExplanationRequest) -> dict:
-    """
-    Generate an explanation.
-
-    Args:
-        request: ExplanationRequest with question and difficulty
-
-    Returns:
-        Explanation response with structured content
-    """
+    """Generate an explanation. AI decides difficulty and which outputs to produce."""
     try:
         logger.info(f"Processing explanation request: {request.question[:50]}...")
 
-        # Validate input
-        is_valid, error_msg = validate_request_input(request.question, request.difficulty)
+        is_valid, error_msg = validate_request_input(request.question)
         if not is_valid:
             logger.warning(f"Validation failed: {error_msg}")
             raise HTTPException(
@@ -50,14 +102,12 @@ async def explain_concept(request: ExplanationRequest) -> dict:
                 detail=f"Invalid input: {error_msg}"
             )
 
-        # Sanitize input
         question = sanitize_question(request.question)
 
-        # Generate explanation
         generator = ExplanationGenerator()
         result = generator.generate_explanation(
             question=question,
-            difficulty=request.difficulty
+            model_name=request.model_name
         )
 
         if result.get("status") != "success":
@@ -89,6 +139,8 @@ async def explain_concept(request: ExplanationRequest) -> dict:
         )
 
 
+# ─── Bulk Explain ────────────────────────────────────────────────────────────
+
 @router.post(
     "/explain/bulk",
     response_model=list,
@@ -97,7 +149,7 @@ async def explain_concept(request: ExplanationRequest) -> dict:
 )
 async def explain_multiple(
     questions: List[str] = Query(..., description="List of questions"),
-    difficulty: str = Query("beginner", description="Difficulty level")
+    model_name: Optional[str] = Query(None, description="Model override")
 ) -> list:
     """Generate explanations for multiple questions."""
     try:
@@ -120,7 +172,7 @@ async def explain_multiple(
         for i, question in enumerate(questions, 1):
             logger.debug(f"Processing question {i}/{len(questions)}")
 
-            is_valid, error_msg = validate_request_input(question, difficulty)
+            is_valid, error_msg = validate_request_input(question)
             if not is_valid:
                 logger.warning(f"Question {i} validation failed: {error_msg}")
                 results.append({
@@ -130,7 +182,7 @@ async def explain_multiple(
                 continue
 
             question = sanitize_question(question)
-            result = generator.generate_explanation(question, difficulty)
+            result = generator.generate_explanation(question, model_name=model_name)
             results.append(result)
 
         logger.info(f"Processed {len(questions)} requests")
@@ -146,6 +198,8 @@ async def explain_multiple(
         )
 
 
+# ─── Image Analysis ──────────────────────────────────────────────────────────
+
 @router.post(
     "/analyze-image",
     summary="Analyze Uploaded Image/Diagram",
@@ -154,11 +208,11 @@ async def explain_multiple(
 async def analyze_image(
     question: str = Query(..., description="Question about the image"),
     context: Optional[str] = Query(None, description="Additional context"),
+    model_name: Optional[str] = Query(None, description="Model override"),
     file: UploadFile = File(...)
 ) -> dict:
     """Analyze an uploaded image or diagram."""
     try:
-        # Validate input
         is_valid, error_msg = validate_request_input(question)
         if not is_valid:
             raise HTTPException(
@@ -166,7 +220,6 @@ async def analyze_image(
                 detail=f"Invalid question: {error_msg}"
             )
 
-        # Validate file
         allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
         if file.content_type not in allowed_types:
             raise HTTPException(
@@ -174,26 +227,24 @@ async def analyze_image(
                 detail=f"Unsupported file type: {file.content_type}"
             )
 
-        # Save temp file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
             contents = await file.read()
             temp_file.write(contents)
             temp_path = temp_file.name
 
         try:
-            # Analyze image
             logger.info(f"Analyzing image for question: {question[:50]}...")
             handler = MultiModalHandler()
-            analysis = handler.explain_image(question, temp_path, context)
+            analysis_dict = handler.explain_image(question, temp_path, context, model_name=model_name)
 
             logger.info("Image analysis completed")
             return {
                 "status": "success",
-                "analysis": analysis
+                "analysis": analysis_dict.get("analysis", ""),
+                "usage": analysis_dict.get("usage", {})
             }
 
         finally:
-            # Clean up temp file
             Path(temp_path).unlink(missing_ok=True)
 
     except HTTPException:
@@ -212,6 +263,51 @@ async def analyze_image(
         )
 
 
+# ─── Image Generation ────────────────────────────────────────────────────────
+
+@router.post(
+    "/generate-image",
+    summary="Generate Image",
+    description="Generate an image using the requested descriptive prompt"
+)
+async def generate_image(
+    prompt: str = Query(..., description="Prompt to generate an image from"),
+    model_name: Optional[str] = Query("imagen-3.0-generate-001", description="Image generation model name")
+) -> dict:
+    """Generate an image from a prompt."""
+    try:
+        is_valid, error_msg = validate_request_input(prompt)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg or "Invalid prompt"
+            )
+            
+        logger.info(f"Generating image with prompt: {prompt[:50]}...")
+        
+        client = get_gemini_client()
+        image_bytes = client.generate_image(prompt, model_name=model_name)
+        
+        base64_encoded = base64.b64encode(image_bytes).decode("utf-8")
+        
+        logger.info("Image generation completed")
+        return {
+            "status": "success",
+            "image_data": f"data:image/png;base64,{base64_encoded}"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error generating image: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during image generation"
+        )
+
+
+# ─── Endpoints Listing ───────────────────────────────────────────────────────
+
 @router.get(
     "/endpoints",
     summary="List Available Endpoints",
@@ -222,9 +318,11 @@ async def list_endpoints() -> dict:
     return {
         "status": "success",
         "endpoints": {
+            "GET /api/models": "List available AI models and voices",
             "POST /api/explain": "Generate a single explanation",
             "POST /api/explain/bulk": "Generate multiple explanations",
             "POST /api/analyze-image": "Analyze uploaded image/diagram",
+            "POST /api/generate-image": "Generate an image from a textual prompt",
             "GET /health": "Health check",
             "GET /config": "Get configuration",
             "GET /api/endpoints": "List all endpoints"

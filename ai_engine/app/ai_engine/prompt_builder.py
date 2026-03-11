@@ -1,6 +1,6 @@
 """
 Prompt building module for constructing optimized prompts for Gemini.
-Supports any topic — not limited to physics.
+The AI decides difficulty level and which output types are appropriate.
 """
 
 import logging
@@ -10,43 +10,26 @@ from utils.exceptions import InvalidPromptError
 
 logger = setup_logger(__name__)
 
-# Difficulty level templates
-DIFFICULTY_LEVELS = {
-    "beginner": "a beginner-level student (high school)",
-    "intermediate": "an intermediate-level student (early undergraduate)",
-    "advanced": "an advanced student (upper-level undergraduate or graduate)",
-    "expert": "an expert-level audience"
-}
-
 JSON_FORMAT_TEMPLATE = """{
  "topic": "",
  "difficulty": "",
  "explanation": "",
  "key_points": [],
- "diagram_prompt": "",
- "animation_prompt": "",
- "simulation_prompt": "",
- "narration_script": "",
+ "diagram_prompt": null,
+ "animation_prompt": null,
+ "simulation_prompt": null,
+ "narration_script": null,
  "follow_up_questions": []
 }"""
 
 
-def build_explanation_prompt(
-    question: str,
-    difficulty: str = "beginner",
-    include_diagram: bool = True,
-    include_animation: bool = True,
-    include_simulation: bool = True
-) -> str:
+def build_explanation_prompt(question: str) -> str:
     """
     Build optimized prompt for generating an explanation on any topic.
+    The AI decides the difficulty level and which multimedia outputs are useful.
 
     Args:
         question: Concept or question to explain
-        difficulty: Level of explanation (beginner, intermediate, advanced, expert)
-        include_diagram: Whether to include diagram prompt
-        include_animation: Whether to include animation prompt
-        include_simulation: Whether to include simulation prompt
 
     Returns:
         Optimized prompt string
@@ -57,27 +40,28 @@ def build_explanation_prompt(
     if not question or not question.strip():
         raise InvalidPromptError("Question cannot be empty")
 
-    if difficulty not in DIFFICULTY_LEVELS:
-        logger.warning(f"Unknown difficulty level: {difficulty}, defaulting to beginner")
-        difficulty = "beginner"
-
-    difficulty_desc = DIFFICULTY_LEVELS[difficulty]
-
     prompt = f"""You are an expert tutor with exceptional ability to explain complex concepts clearly and accurately across any subject — science, mathematics, history, literature, computer science, and more.
 
-Your task: Explain the following concept for {difficulty_desc}.
+Your task: Explain the following concept or answer the following question.
 
-Provide a comprehensive, well-structured explanation that includes:
+**Instructions:**
 
-1. **Simple Explanation**: A clear, concise explanation using everyday language and analogies
-2. **Key Learning Points**: 3-5 important concepts the student should understand
-3. **Diagram Description**: A detailed prompt for generating a visual diagram that illustrates the concept
-4. **Animation Description**: A detailed prompt for an animated visualization showing the concept in action
-5. **Simulation Idea**: A concept for an interactive simulation to reinforce learning
-6. **Narration Script**: A clear narration script (2-3 sentences) summarising the explanation
-7. **Follow-up Questions**: 2-3 thought-provoking questions to deepen understanding
+1. **Determine Difficulty**: Based on the question's complexity, decide the most appropriate difficulty level: "beginner", "intermediate", "advanced", or "expert". Set this in the "difficulty" field.
+
+2. **Generate Explanation**: Provide a clear, comprehensive explanation using everyday language and analogies where appropriate.
+
+3. **Key Learning Points**: List 3-5 important concepts the student should understand.
+
+4. **Decide Which Outputs Are Useful**: Not every concept needs every type of multimedia output. Think carefully about which outputs would genuinely help explain THIS specific topic:
+   - **diagram_prompt**: If a visual diagram would help (e.g. structures, processes, relationships), provide a detailed prompt for generating it. If not useful, set to null.
+   - **animation_prompt**: If an animation showing change over time would help (e.g. processes, mechanics, algorithms), provide a detailed prompt. If not useful, set to null.
+   - **simulation_prompt**: If an interactive simulation would reinforce learning (e.g. adjustable parameters, experimentation), provide a concept. If not useful, set to null.
+   - **narration_script**: If a spoken narration summarizing the concept would be helpful (almost always yes), provide a clear 2-3 sentence narration script. If for some reason narration isn't suitable, set to null.
+
+5. **Follow-up Questions**: Suggest 2-3 thought-provoking questions to deepen understanding.
 
 IMPORTANT: Return your response STRICTLY as valid JSON with no additional text or markdown.
+Any output type you decide is NOT useful for this topic MUST be set to null (not an empty string).
 
 Expected JSON format:
 {JSON_FORMAT_TEMPLATE}
@@ -87,7 +71,7 @@ Concept/Question:
 
 Generate the response now:"""
 
-    logger.debug(f"Prompt built for question: {question[:50]}... (difficulty: {difficulty})")
+    logger.debug(f"Prompt built for question: {question[:50]}...")
     return prompt
 
 

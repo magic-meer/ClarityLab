@@ -30,20 +30,14 @@ class ExplanationGenerator:
     def generate_explanation(
         self,
         question: str,
-        difficulty: str = "beginner",
-        include_diagram: bool = True,
-        include_animation: bool = True,
-        include_simulation: bool = True
+        model_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generate a complete explanation.
 
         Args:
             question: Concept or question
-            difficulty: Explanation difficulty level
-            include_diagram: Include diagram prompt
-            include_animation: Include animation prompt
-            include_simulation: Include simulation prompt
+            model_name: Optional override for the model to use
 
         Returns:
             Dictionary with structured explanation
@@ -60,24 +54,21 @@ class ExplanationGenerator:
 
             logger.info(f"Generating explanation for: {question[:50]}...")
 
-            # Build optimized prompt
-            prompt = build_explanation_prompt(
-                question=question,
-                difficulty=difficulty,
-                include_diagram=include_diagram,
-                include_animation=include_animation,
-                include_simulation=include_simulation
-            )
+            # Build optimized prompt (AI decides difficulty and outputs)
+            prompt = build_explanation_prompt(question=question)
             validate_prompt(prompt)
 
             # Get response from Gemini
             logger.debug("Sending request to Gemini API")
-            response_text = self.client.generate_content(prompt)
+            response_data = self.client.generate_content(prompt, model_name=model_name)
 
             # Parse and validate response
             logger.debug("Parsing response")
-            parsed_response = self.parser.parse_json_response(response_text)
+            parsed_response = self.parser.parse_json_response(response_data["text"])
             self.parser.validate_explanation_response(parsed_response)
+            
+            # Attach usage
+            parsed_response["usage"] = response_data.get("usage", {})
 
             logger.info("Explanation generated successfully")
             return {
@@ -120,14 +111,14 @@ class ExplanationGenerator:
     def generate_bulk_explanations(
         self,
         questions: list[str],
-        difficulty: str = "beginner"
+        model_name: Optional[str] = None
     ) -> list[Dict[str, Any]]:
         """
         Generate explanations for multiple questions.
 
         Args:
             questions: List of questions
-            difficulty: Explanation difficulty level
+            model_name: Optional override for the model to use
 
         Returns:
             List of explanations
@@ -135,7 +126,7 @@ class ExplanationGenerator:
         results = []
         for i, question in enumerate(questions, 1):
             logger.debug(f"Processing question {i}/{len(questions)}")
-            result = self.generate_explanation(question, difficulty)
+            result = self.generate_explanation(question, model_name=model_name)
             results.append(result)
 
         return results
@@ -148,20 +139,20 @@ PhysicsExplanationGenerator = ExplanationGenerator
 # Convenience function
 def generate_explanation(
     question: str,
-    difficulty: str = "beginner"
+    model_name: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Generate an explanation (convenience function).
 
     Args:
         question: Question
-        difficulty: Explanation difficulty
+        model_name: Output model override
 
     Returns:
         Explanation result dictionary
     """
     generator = ExplanationGenerator()
-    return generator.generate_explanation(question, difficulty)
+    return generator.generate_explanation(question, model_name=model_name)
 
 
 # Backward-compatible alias

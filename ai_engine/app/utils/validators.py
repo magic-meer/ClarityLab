@@ -12,7 +12,7 @@ logger = setup_logger(__name__)
 
 
 class QuestionValidator(BaseModel):
-    """Validator for physics questions."""
+    """Validator for questions."""
     
     question: str
     max_length: int = 1000
@@ -33,41 +33,21 @@ class QuestionValidator(BaseModel):
         return v.strip()
 
 
-class DifficultyValidator(BaseModel):
-    """Validator for difficulty levels."""
-    
-    difficulty: str
-    
-    @field_validator('difficulty')
-    @classmethod
-    def validate_difficulty(cls, v: str) -> str:
-        """Validate difficulty level."""
-        valid_levels = {"beginner", "intermediate", "advanced", "expert"}
-        level = v.lower().strip()
-        
-        if level not in valid_levels:
-            raise ValueError(f"Invalid difficulty level. Must be one of: {valid_levels}")
-        
-        return level
-
-
 def validate_request_input(
     question: str,
-    difficulty: Optional[str] = "beginner"
+    **kwargs
 ) -> tuple[bool, Optional[str]]:
     """
     Validate request input parameters.
     
     Args:
-        question: Physics question
-        difficulty: Explanation difficulty
+        question: Question to validate
     
     Returns:
         Tuple of (is_valid, error_message)
     """
     try:
         QuestionValidator(question=question)
-        DifficultyValidator(difficulty=difficulty)
         return True, None
     except ValidationError as e:
         logger.warning(f"Validation error: {e}")

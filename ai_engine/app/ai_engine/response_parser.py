@@ -81,13 +81,8 @@ class ResponseParser:
         if required_fields is None:
             required_fields = [
                 "topic",
-                "difficulty",
                 "explanation",
                 "key_points",
-                "diagram_prompt",
-                "animation_prompt",
-                "simulation_prompt",
-                "narration_script",
                 "follow_up_questions"
             ]
 

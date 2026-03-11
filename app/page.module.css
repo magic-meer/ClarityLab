@@ -212,6 +212,18 @@
   line-height: 1.5;
   color: var(--text-primary);
 }
+.userImageWrapper {
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  max-width: 300px;
+  border: 1px solid var(--border-subtle);
+}
+.userImage {
+  display: block;
+  width: 100%;
+  height: auto;
+}
 
 /* Tags */
 .tag {
@@ -316,6 +328,11 @@
 }
 
 /* Narration */
+.narrationWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .narration {
   font-size: 14px;
   line-height: 1.7;
@@ -325,6 +342,119 @@
   background: rgba(91, 141, 239, 0.06);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-style: italic;
+}
+.audioControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.playBtn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.playBtn:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--border-accent);
+}
+.playBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.audioPlayer {
+  height: 38px;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.audioError {
+  color: #ef4444;
+  font-size: 12px;
+}
+
+/* Settings / Options */
+.settingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settingsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settingsLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.settingsSelect {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  outline: none;
+}
+
+/* Usage Stats */
+.usageStats {
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Generated Image */
+.generatedImageWrapper {
+  margin-top: 12px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+.generatedImage {
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+}
+.genImgBtn {
+  margin-top: 8px;
+  background: var(--accent-gradient);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.genImgBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.genImgBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Follow-ups */
@@ -371,6 +501,59 @@
   padding: 16px 24px 24px;
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.filePreviewContainer {
+  display: flex;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+}
+.filePreviewThumb {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-accent);
+}
+.filePreviewThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.removeFileBtn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.fileInputBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 4px;
+}
+.fileInputBtn:hover {
+  color: var(--text-primary);
+}
+.fileInput {
+  display: none;
 }
 .inputWrapper {
   display: flex;

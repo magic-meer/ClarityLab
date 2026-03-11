@@ -1,11 +1,11 @@
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { question, model_name } = body;
+    const { prompt, model_name } = body;
 
-    if (!question || question.trim().length < 5) {
+    if (!prompt || prompt.length < 3) {
       return Response.json(
-        { status: "error", error: "Question must be at least 5 characters" },
+        { status: "error", error: "Prompt must be at least 3 characters" },
         { status: 400 }
       );
     }
@@ -13,13 +13,11 @@ export async function POST(request) {
     const backendUrl =
       process.env.BACKEND_URL || "http://localhost:8000";
 
-    const payload = { question };
-    if (model_name) payload.model_name = model_name;
+    const backendParams = new URLSearchParams({ prompt });
+    if (model_name) backendParams.append("model_name", model_name);
 
-    const res = await fetch(`${backendUrl}/api/explain`, {
+    const res = await fetch(`${backendUrl}/api/generate-image?${backendParams.toString()}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
@@ -33,9 +31,9 @@ export async function POST(request) {
 
     return Response.json(data);
   } catch (error) {
-    console.error("API proxy error:", error);
+    console.error("Image generation API Proxy error:", error);
     return Response.json(
-      { status: "error", error: "Failed to connect to AI engine. Make sure the Python backend is running on port 8000." },
+      { status: "error", error: "Failed to connect to AI engine." },
       { status: 502 }
     );
   }

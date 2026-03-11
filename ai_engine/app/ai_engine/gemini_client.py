@@ -1,121 +1,172 @@
 """
-Gemini API client for handling AI requests.
-Provides safe, typed interface to Google's Generative AI.
+Gemini API client implementation supporting multimodal inputs and image generation.
+Uses the official google-genai SDK.
 """
 
-import google.generativeai as genai
-from typing import Optional
+from google import genai
+from google.genai import types
 import logging
+from typing import Optional, Dict, Any
+from pathlib import Path
+
 from config.settings import get_settings
 from utils.exceptions import GeminiAPIError
-from config.logger import setup_logger
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class GeminiClient:
-    """Client for interacting with Gemini API."""
-    
-    _instance: Optional['GeminiClient'] = None
-    
-    def __new__(cls) -> 'GeminiClient':
-        """Implement singleton pattern."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
-        return cls._instance
-    
+    """Wrapper for the Gemini API using google-genai SDK."""
+
     def __init__(self):
-        """Initialize Gemini client with API key."""
-        if self._initialized:
-            return
-        
-        settings = get_settings()
-        if not settings.gemini_api_key:
-            raise GeminiAPIError("GEMINI_API_KEY not configured in environment")
-        
+        """Initialize the Gemini client with settings."""
+        self.settings = get_settings()
         try:
-            genai.configure(api_key=settings.gemini_api_key)
-            self.model_name = settings.model_name
-            self.model = genai.GenerativeModel(self.model_name)
-            self._initialized = True
-            logger.info(f"Gemini client initialized with model: {self.model_name}")
+            # The client automatically picks up GEMINI_API_KEY from the environment
+            self.client = genai.Client(api_key=self.settings.gemini_api_key)
+            self.default_model = self.settings.model_name
+            logger.info(f"Gemini client initialized with model: {self.default_model}")
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
             raise GeminiAPIError(f"Initialization failed: {str(e)}")
-    
-    def generate_content(self, prompt: str) -> str:
+
+    def generate_content(
+        self,
+        prompt: str,
+        model_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Generate content from prompt using Gemini.
-        
+        Generate text content from a prompt.
+
         Args:
-            prompt: The prompt text to send to Gemini
-        
+            prompt: User prompt
+            model_name: Optional model override
+
         Returns:
-            Generated content as string
-        
-        Raises:
-            GeminiAPIError: If API call fails
-            ValueError: If prompt is empty
+            Dictionary containing 'text' and 'usage' metadata
         """
-        if not prompt or not prompt.strip():
-            raise ValueError("Prompt cannot be empty")
-        
         try:
-            logger.debug(f"Generating content with prompt length: {len(prompt)}")
-            response = self.model.generate_content(prompt)
+            model = model_name or self.default_model
+            logger.debug(f"Sending text generation request using model: {model}")
             
-            if not response or not response.text:
-                raise GeminiAPIError("Empty response from Gemini API")
-            
-            logger.debug(f"Content generated successfully, length: {len(response.text)}")
-            return response.text
-        
+            response = self.client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                )
+            )
+
+            result = {
+                "text": response.text,
+                "usage": {
+                    "prompt_tokens": response.usage_metadata.prompt_token_count if response.usage_metadata else 0,
+                    "completion_tokens": response.usage_metadata.candidates_token_count if response.usage_metadata else 0,
+                    "total_tokens": response.usage_metadata.total_token_count if response.usage_metadata else 0
+                }
+            }
+            return result
+
         except Exception as e:
-            if "blocked" in str(e).lower():
-                logger.error(f"Prompt blocked by API: {e}")
-                raise GeminiAPIError(f"Prompt blocked: {str(e)}")
             logger.error(f"Gemini API error: {e}")
-            raise GeminiAPIError(f"API call failed: {str(e)}")
-    
-    def generate_content_with_image(self, prompt: str, image_data) -> str:
+            raise GeminiAPIError(f"Content generation failed: {str(e)}")
+
+    def generate_content_with_image(
+        self,
+        prompt: str,
+        image_path: str,
+        model_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Generate content from prompt and image using Gemini.
-        
+        Generate text content based on an image and a prompt.
+
         Args:
-            prompt: The prompt text
-            image_data: Image data (PIL Image, file path, or bytes)
-        
+            prompt: Question or instruction about the image
+            image_path: Path to the local image file
+            model_name: Optional model override
+
         Returns:
-            Generated content as string
-        
-        Raises:
-            GeminiAPIError: If API call fails
+            Dictionary containing 'text' and 'usage' metadata
+        """
+        try:
+            model = model_name or self.default_model
+            path = Path(image_path)
+            if not path.exists():
+                raise FileNotFoundError(f"Image not found at {image_path}")
+            
+            # The new SDK accepts PIL Images or UploadedFiles
+            from PIL import Image
+            img = Image.open(path)
+
+            logger.debug(f"Sending image analyze request using model: {model}")
+            
+            response = self.client.models.generate_content(
+                model=model,
+                contents=[img, prompt],
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                )
+            )
+
+            result = {
+                "text": response.text,
+                "usage": {
+                    "prompt_tokens": response.usage_metadata.prompt_token_count if response.usage_metadata else 0,
+                    "completion_tokens": response.usage_metadata.candidates_token_count if response.usage_metadata else 0,
+                    "total_tokens": response.usage_metadata.total_token_count if response.usage_metadata else 0
+                }
+            }
+            return result
+
+        except Exception as e:
+            logger.error(f"Gemini API multimodal error: {e}")
+            raise GeminiAPIError(f"Multimodal generation failed: {str(e)}")
+
+    def generate_image(
+        self,
+        prompt: str,
+        model_name: Optional[str] = "imagen-3.0-generate-001"
+    ) -> bytes:
+        """
+        Generate an image using Google's Imagen API through GenAI SDK.
+
+        Args:
+            prompt: The descriptive prompt
+            model_name: Image generation model name
+            
+        Returns:
+            Image bytes
         """
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
-        
+            
         try:
-            logger.debug("Generating content with image")
-            response = self.model.generate_content([prompt, image_data])
+            logger.debug(f"Generating image with prompt: {prompt[:50]}")
+            result = self.client.models.generate_images(
+                model=model_name or "imagen-3.0-generate-001",
+                prompt=prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    output_mime_type="image/png"
+                )
+            )
+
+            if result and result.generated_images:
+                # The SDK directly provides the image bytes
+                return result.generated_images[0].image.image_bytes
             
-            if not response or not response.text:
-                raise GeminiAPIError("Empty response from Gemini API")
+            raise GeminiAPIError("No image returned from generation")
             
-            logger.debug("Content with image generated successfully")
-            return response.text
-        
         except Exception as e:
-            logger.error(f"Gemini API error with image: {e}")
-            raise GeminiAPIError(f"API call with image failed: {str(e)}")
+            logger.error(f"Image generation error: {e}")
+            raise GeminiAPIError(f"Image generation failed: {str(e)}")
 
 
 # Singleton instance
 _client: Optional[GeminiClient] = None
 
-
 def get_gemini_client() -> GeminiClient:
-    """Get or create Gemini client singleton."""
+    """Get or create the Gemini client singleton."""
     global _client
     if _client is None:
         _client = GeminiClient()

@@ -1,12 +1,12 @@
 """
 Multi-modal handler for processing images and text with Gemini.
+Uses the official google-genai SDK via the GeminiClient.
 """
 
 import logging
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, List, Dict, Any
 from PIL import Image
-import google.generativeai as genai
 
 from config.logger import setup_logger
 from ai_engine.gemini_client import get_gemini_client
@@ -28,18 +28,20 @@ class MultiModalHandler:
         self,
         question: str,
         image_path: str,
-        context: Optional[str] = None
-    ) -> str:
+        context: Optional[str] = None,
+        model_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Explain a physics diagram or image.
+        Explain a diagram or image.
         
         Args:
             question: Question about the image
             image_path: Path to image file
             context: Additional context
+            model_name: Optional override for the model to use
         
         Returns:
-            Explanation text
+            Dictionary with explanation text and usage stats
         
         Raises:
             InvalidImageError: If image is invalid
@@ -54,18 +56,22 @@ class MultiModalHandler:
             if image_path_obj.suffix.lower() not in {'.jpg', '.jpeg', '.png', '.gif', '.webp'}:
                 raise InvalidImageError(f"Unsupported image format: {image_path_obj.suffix}")
             
-            logger.debug(f"Loading image: {image_path}")
-            image = Image.open(image_path)
-            
             # Build prompt
             prompt = build_image_analysis_prompt(question, context)
             
-            # Generate explanation
-            logger.debug("Generating image explanation")
-            explanation = self.client.generate_content_with_image(prompt, image)
+            # Generate explanation using the migrated GeminiClient
+            logger.debug(f"Generating image explanation for: {image_path}")
+            response_data = self.client.generate_content_with_image(
+                prompt=prompt, 
+                image_path=image_path, 
+                model_name=model_name
+            )
             
             logger.info("Image explained successfully")
-            return explanation
+            return {
+                "analysis": response_data["text"],
+                "usage": response_data.get("usage", {})
+            }
         
         except InvalidImageError:
             raise
@@ -76,17 +82,19 @@ class MultiModalHandler:
     def compare_images(
         self,
         question: str,
-        image_paths: list[str]
-    ) -> str:
+        image_paths: List[str],
+        model_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        Compare multiple physics diagrams/images.
+        Compare multiple diagrams/images.
         
         Args:
             question: Question about images
             image_paths: List of image file paths
+            model_name: Optional override for the model to use
         
         Returns:
-            Comparison analysis
+            Dictionary with comparison analysis and usage stats
         
         Raises:
             InvalidImageError: If images are invalid
@@ -106,28 +114,43 @@ class MultiModalHandler:
                 images.append(Image.open(image_path_obj))
             
             # Build comparison prompt
-            prompt = f"""You are an expert physics educator. Compare these {len(images)} physics diagrams/images and answer:
+            prompt = f"""You are an expert educator. Compare these {len(images)} diagrams/images and answer:
 
 {question}
 
 Provide a detailed analysis that:
 1. Identifies key elements in each image
 2. Highlights similarities and differences
-3. Explains physics concepts shown
+3. Explains the concepts shown
 4. Discusses implications of the differences
 5. Suggests learning insights"""
             
-            # Create content array with images
-            content = [prompt] + images
-            
+            # The new SDK is clean. We use our client's underlying sdk client for flexibility
+            # or we could extend the client to handle parts. Let's use the underlying client.
             logger.debug(f"Generating comparison for {len(images)} images")
-            response_text = self.client.model.generate_content(content)
             
-            if not response_text or not response_text.text:
+            sdk_client = self.client.client
+            model = model_name or self.client.default_model
+            
+            response = sdk_client.models.generate_content(
+                model=model,
+                contents=images + [prompt]
+            )
+            
+            if not response or not response.text:
                 raise AIEngineException("Empty response from API")
+                
+            usage = {
+                "prompt_tokens": response.usage_metadata.prompt_token_count if response.usage_metadata else 0,
+                "completion_tokens": response.usage_metadata.candidates_token_count if response.usage_metadata else 0,
+                "total_tokens": response.usage_metadata.total_token_count if response.usage_metadata else 0
+            }
             
             logger.info("Image comparison completed")
-            return response_text.text
+            return {
+                "analysis": response.text,
+                "usage": usage
+            }
         
         except Exception as e:
             logger.error(f"Error comparing images: {e}")
@@ -135,31 +158,12 @@ Provide a detailed analysis that:
     
     @staticmethod
     def validate_image_file(image_path: str) -> bool:
-        """
-        Validate that an image file exists and is valid.
-        
-        Args:
-            image_path: Path to image
-        
-        Returns:
-            True if valid
-        
-        Raises:
-            InvalidImageError: If validation fails
-        """
+        """Validate if path exists and can be opened as image."""
         try:
             path = Path(image_path)
             if not path.exists():
-                raise InvalidImageError(f"File not found: {image_path}")
-            
-            if path.suffix.lower() not in {'.jpg', '.jpeg', '.png', '.gif', '.webp'}:
-                raise InvalidImageError(f"Unsupported format: {path.suffix}")
-            
-            # Try to open image
+                return False
             Image.open(path)
             return True
-        
-        except InvalidImageError:
-            raise
-        except Exception as e:
-            raise InvalidImageError(f"Invalid image: {str(e)}")
+        except Exception:
+            return False

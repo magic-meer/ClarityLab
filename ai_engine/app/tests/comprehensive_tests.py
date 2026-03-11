@@ -14,9 +14,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.settings import get_settings
 from config.logger import setup_logger
-from ai_engine.explanation_generator import PhysicsExplanationGenerator
+from ai_engine.explanation_generator import ExplanationGenerator
 from ai_engine.gemini_client import get_gemini_client
-from ai_engine.prompt_builder import build_physics_prompt
+from ai_engine.prompt_builder import build_explanation_prompt
 from ai_engine.response_parser import ResponseParser
 from api.api_routes import router
 from schemas.request_schema import ExplanationRequest
@@ -34,7 +34,7 @@ class TestSystemInitialization:
         """Test that all modules import correctly."""
         logger.info("Testing module imports...")
         try:
-            import google.generativeai as genai
+            from google import genai
             logger.info("✅ All modules imported successfully")
             return True
         except Exception as e:
@@ -163,17 +163,18 @@ class TestAvailableModels:
         """List available Gemini models."""
         logger.info("Checking available Gemini models...")
         try:
-            import google.generativeai as genai
+            from google import genai
             from config.settings import get_settings
             
             settings = get_settings()
-            genai.configure(api_key=settings.gemini_api_key)
+            client = genai.Client(api_key=settings.gemini_api_key)
             
-            models = genai.list_models()
+            models = client.models.list()
             available = []
             
             for model in models:
-                if 'generateContent' in model.supported_generation_methods:
+                methods = getattr(model, "supported_generation_methods", [])
+                if 'generateContent' in [str(m) for m in methods]:
                     available.append(model.name)
             
             logger.info(f"✅ Found {len(available)} available models")

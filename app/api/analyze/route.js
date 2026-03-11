@@ -3,6 +3,7 @@ export async function POST(request) {
     const formData = await request.formData();
     const question = formData.get("question");
     const context = formData.get("context");
+    const model_name = formData.get("model_name");
     const file = formData.get("file");
 
     if (!question || question.trim().length < 5) {
@@ -24,6 +25,7 @@ export async function POST(request) {
 
     const params = new URLSearchParams({ question });
     if (context) params.append("context", context);
+    if (model_name) params.append("model_name", model_name);
 
     const backendForm = new FormData();
     backendForm.append("file", file);

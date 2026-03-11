@@ -1,4 +1,4 @@
-"""FastAPI application for Physics AI Explainer.Main entry point for the application."""
+"""FastAPI application for ClarityLab AI Learning Agent. Main entry point."""
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,8 +15,8 @@ logger = setup_logger("main", level=settings.log_level)
 
 # Create FastAPI app
 app = FastAPI(
-    title="Physics AI Explainer",
-    description="AI system for explaining physics concepts with diagrams and animations",
+    title="ClarityLab AI Learning Agent",
+    description="Multimodal AI system for explaining complex topics with diagrams, animations, and narration",
     version="1.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -25,7 +25,7 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,27 +37,17 @@ app.include_router(router, prefix="/api")
 # Health check endpoint
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict:
-    """
-    Health check endpoint.
-    
-    Returns:
-        Health status
-    """
+    """Health check endpoint."""
     return {
         "status": "healthy",
-        "service": "Physics AI Explainer",
+        "service": "ClarityLab AI Learning Agent",
         "version": "1.0"
     }
 
 # Configuration endpoint
 @app.get("/config", tags=["System"])
 async def get_config() -> dict:
-    """
-    Get application configuration (non-sensitive).
-    
-    Returns:
-        Configuration dictionary
-    """
+    """Get application configuration (non-sensitive)."""
     return {
         "debug_mode": settings.debug_mode,
         "model": settings.model_name,
@@ -81,7 +71,7 @@ async def http_exception_handler(request, exc):
 @app.on_event("startup")
 async def startup_event():
     """Execute startup tasks."""
-    logger.info("Application starting up")
+    logger.info("ClarityLab AI Learning Agent starting up")
     logger.info(f"Using model: {settings.model_name}")
     logger.info(f"Debug mode: {settings.debug_mode}")
 
@@ -93,8 +83,8 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
-    
-    logger.info("Starting Physics AI Explainer API")
+
+    logger.info("Starting ClarityLab AI Learning Agent API")
     uvicorn.run(
         app,
         host="0.0.0.0",

@@ -1,5 +1,5 @@
 """
-Main module for generating physics explanations.
+Main module for generating explanations on any topic.
 Orchestrates prompt building, API calls, and response parsing.
 """
 
@@ -11,22 +11,22 @@ from utils.exceptions import (
     InvalidPromptError,
     ResponseParsingError
 )
-from ai_engine.prompt_builder import build_physics_prompt, validate_prompt
+from ai_engine.prompt_builder import build_explanation_prompt, validate_prompt
 from ai_engine.gemini_client import get_gemini_client
 from ai_engine.response_parser import ResponseParser
 
 logger = setup_logger(__name__)
 
 
-class PhysicsExplanationGenerator:
-    """Generate structured physics explanations using AI."""
-    
+class ExplanationGenerator:
+    """Generate structured explanations using AI."""
+
     def __init__(self):
         """Initialize the explanation generator."""
         self.client = get_gemini_client()
         self.parser = ResponseParser()
-        logger.debug("PhysicsExplanationGenerator initialized")
-    
+        logger.debug("ExplanationGenerator initialized")
+
     def generate_explanation(
         self,
         question: str,
@@ -36,18 +36,18 @@ class PhysicsExplanationGenerator:
         include_simulation: bool = True
     ) -> Dict[str, Any]:
         """
-        Generate a complete physics explanation.
-        
+        Generate a complete explanation.
+
         Args:
-            question: Physics concept or question
+            question: Concept or question
             difficulty: Explanation difficulty level
             include_diagram: Include diagram prompt
             include_animation: Include animation prompt
             include_simulation: Include simulation prompt
-        
+
         Returns:
             Dictionary with structured explanation
-        
+
         Raises:
             InvalidPromptError: If input is invalid
             ResponseParsingError: If response parsing fails
@@ -57,11 +57,11 @@ class PhysicsExplanationGenerator:
             # Validate input
             if not question or not question.strip():
                 raise InvalidPromptError("Question cannot be empty")
-            
+
             logger.info(f"Generating explanation for: {question[:50]}...")
-            
+
             # Build optimized prompt
-            prompt = build_physics_prompt(
+            prompt = build_explanation_prompt(
                 question=question,
                 difficulty=difficulty,
                 include_diagram=include_diagram,
@@ -69,22 +69,22 @@ class PhysicsExplanationGenerator:
                 include_simulation=include_simulation
             )
             validate_prompt(prompt)
-            
+
             # Get response from Gemini
             logger.debug("Sending request to Gemini API")
             response_text = self.client.generate_content(prompt)
-            
+
             # Parse and validate response
             logger.debug("Parsing response")
             parsed_response = self.parser.parse_json_response(response_text)
-            self.parser.validate_physics_response(parsed_response)
-            
+            self.parser.validate_explanation_response(parsed_response)
+
             logger.info("Explanation generated successfully")
             return {
                 "status": "success",
                 "data": parsed_response
             }
-        
+
         except InvalidPromptError as e:
             logger.error(f"Invalid prompt: {e}")
             return {
@@ -92,7 +92,7 @@ class PhysicsExplanationGenerator:
                 "error": "Invalid input",
                 "message": str(e)
             }
-        
+
         except ResponseParsingError as e:
             logger.error(f"Response parsing failed: {e}")
             return {
@@ -100,7 +100,7 @@ class PhysicsExplanationGenerator:
                 "error": "Response parsing failed",
                 "message": str(e)
             }
-        
+
         except AIEngineException as e:
             logger.error(f"AI engine error: {e}")
             return {
@@ -108,7 +108,7 @@ class PhysicsExplanationGenerator:
                 "error": "AI processing error",
                 "message": str(e)
             }
-        
+
         except Exception as e:
             logger.error(f"Unexpected error: {e}", exc_info=True)
             return {
@@ -116,7 +116,7 @@ class PhysicsExplanationGenerator:
                 "error": "Unexpected error",
                 "message": "An unexpected error occurred"
             }
-    
+
     def generate_bulk_explanations(
         self,
         questions: list[str],
@@ -124,11 +124,11 @@ class PhysicsExplanationGenerator:
     ) -> list[Dict[str, Any]]:
         """
         Generate explanations for multiple questions.
-        
+
         Args:
             questions: List of questions
             difficulty: Explanation difficulty level
-        
+
         Returns:
             List of explanations
         """
@@ -137,24 +137,32 @@ class PhysicsExplanationGenerator:
             logger.debug(f"Processing question {i}/{len(questions)}")
             result = self.generate_explanation(question, difficulty)
             results.append(result)
-        
+
         return results
 
 
+# Backward-compatible alias
+PhysicsExplanationGenerator = ExplanationGenerator
+
+
 # Convenience function
-def generate_physics_explanation(
+def generate_explanation(
     question: str,
     difficulty: str = "beginner"
 ) -> Dict[str, Any]:
     """
-    Generate a physics explanation (convenience function).
-    
+    Generate an explanation (convenience function).
+
     Args:
-        question: Physics question
+        question: Question
         difficulty: Explanation difficulty
-    
+
     Returns:
         Explanation result dictionary
     """
-    generator = PhysicsExplanationGenerator()
+    generator = ExplanationGenerator()
     return generator.generate_explanation(question, difficulty)
+
+
+# Backward-compatible alias
+generate_physics_explanation = generate_explanation

@@ -19,6 +19,7 @@ class ResponseParser:
     STRING_FIELDS = {
         "topic", "difficulty", "explanation",
         "diagram_type", "diagram_code",
+        "image_prompt",
         "narration_script",
     }
 

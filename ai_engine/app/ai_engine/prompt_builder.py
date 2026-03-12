@@ -17,6 +17,7 @@ JSON_FORMAT_TEMPLATE = """{
  "key_points": [],
  "diagram_type": null,
  "diagram_code": null,
+ "image_prompt": null,
  "narration_script": null,
  "follow_up_questions": []
 }"""
@@ -51,8 +52,9 @@ Your task: Explain the following concept or answer the following question.
 3. **Key Learning Points**: List 3-5 important concepts the student should understand.
 
 4. **Decide Which Outputs Are Useful**: Think carefully about which outputs would genuinely help explain THIS specific topic:
-   - **diagram_type**: If a visual diagram would help (e.g. structures, processes, relationships), set this to "mermaid" or "svg". If not useful, set to null.
+   - **diagram_type**: If a structural visual diagram would help (e.g. flowcharts, data structures, processes, relationships), set this to "mermaid" or "svg". If not useful, set to null.
    - **diagram_code**: If `diagram_type` is set, provide the RAW CODE for the diagram. If "mermaid", provide raw Mermaid JS graph/flowchart code. If "svg", provide raw valid SVG XML code. Do NOT wrap it in markdown codeblocks (no ```). If not useful, set to null.
+   - **image_prompt**: If a photorealistic, conceptual, or illustrative image would help explain the topic (e.g., historical events, geographical locations, physical objects, abstract artistic concepts), provide a highly detailed, descriptive prompt that can be sent to an image generation AI. If not useful, set to null.
    - **narration_script**: If a spoken narration summarizing the concept would be helpful (almost always yes), provide a clear 2-3 sentence narration script. If for some reason narration isn't suitable, set to null.
 
 5. **Follow-up Questions**: Suggest 2-3 thought-provoking questions to deepen understanding.

@@ -13,11 +13,12 @@ export async function POST(request) {
     const backendUrl =
       process.env.BACKEND_URL || "http://localhost:8000";
 
-    const backendParams = new URLSearchParams({ prompt });
-    if (model_name) backendParams.append("model_name", model_name);
-
-    const res = await fetch(`${backendUrl}/api/generate-image?${backendParams.toString()}`, {
+    const res = await fetch(`${backendUrl}/api/generate-image`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ prompt, model_name }),
     });
 
     const data = await res.json();

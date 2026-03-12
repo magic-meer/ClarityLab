@@ -1,12 +1,30 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import mermaid from "mermaid";
 import styles from "./page.module.css";
+
+/**
+ * Safety coercion: turns anything that isn't already a string into one.
+ * Prevents the "Objects are not valid as a React child" crash when the
+ * backend returns an object instead of a plain string for a text field.
+ */
+function toStr(value) {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    // Try common prose keys first
+    for (const key of ["description", "text", "content", "summary", "body", "value"]) {
+      if (typeof value[key] === "string") return value[key];
+    }
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
 
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [modelName, setModelName] = useState("gemini-2.5-flash");
-  const [imageModel, setImageModel] = useState("imagen-3.0-generate-001");
   const [voiceName, setVoiceName] = useState("en-US-Journey-D");
   const [file, setFile] = useState(null);
   const [conversations, setConversations] = useState([]);
@@ -15,43 +33,44 @@ export default function Home() {
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Dynamic model lists from API
-  const [textModels, setTextModels] = useState([]);
-  const [imageModels, setImageModels] = useState([]);
-  const [audioVoices, setAudioVoices] = useState([]);
+  // Dynamic model lists from API — seeded with hardcoded defaults so
+  // the dropdowns are never empty while the fetch is in flight.
+  const [textModels, setTextModels] = useState([
+    { name: "gemini-2.5-flash",      display_name: "Gemini 2.5 Flash" },
+    { name: "gemini-2.0-flash",      display_name: "Gemini 2.0 Flash" },
+    { name: "gemini-2.0-flash-lite", display_name: "Gemini 2.0 Flash Lite" },
+    { name: "gemini-1.5-pro",        display_name: "Gemini 1.5 Pro" },
+    { name: "gemini-1.5-flash",      display_name: "Gemini 1.5 Flash" },
+    { name: "gemini-1.5-flash-8b",   display_name: "Gemini 1.5 Flash 8B" },
+  ]);
+  const [audioVoices, setAudioVoices] = useState([
+    { name: "en-US-Journey-D", display_name: "Journey (US Male)" },
+    { name: "en-US-Journey-F", display_name: "Journey (US Female)" },
+    { name: "en-US-Standard-A", display_name: "Standard (US Male)" },
+    { name: "en-US-Standard-C", display_name: "Standard (US Female)" },
+    { name: "en-GB-Standard-A", display_name: "Standard (UK Female)" },
+    { name: "en-GB-Standard-B", display_name: "Standard (UK Male)" },
+    { name: "en-AU-Standard-A", display_name: "Standard (AU Female)" },
+  ]);
 
-  // Fetch available models on mount
+  // Fetch live model list in the background and update the dropdowns.
+  // Defaults above ensure the UI is never stuck on "Loading...".
   useEffect(() => {
     async function fetchModels() {
       try {
         const res = await fetch("/api/models");
         const data = await res.json();
         if (data.status === "success") {
-          setTextModels(data.text_models || []);
-          setImageModels(data.image_models || []);
-          setAudioVoices(data.audio_voices || []);
-          // Set default to first available if current default isn't in list
+          if (data.text_models?.length)  setTextModels(data.text_models);
+          if (data.audio_voices?.length) setAudioVoices(data.audio_voices);
+          // Keep selected value if it still exists in the new list, else pick first
           if (data.text_models?.length && !data.text_models.find(m => m.name === modelName)) {
             setModelName(data.text_models[0].name);
           }
-          if (data.image_models?.length && !data.image_models.find(m => m.name === imageModel)) {
-            setImageModel(data.image_models[0].name);
-          }
         }
       } catch (err) {
-        console.error("Failed to fetch models:", err);
-        // Fallback to hardcoded defaults
-        setTextModels([
-          { name: "gemini-2.5-flash", display_name: "Gemini 2.5 Flash" },
-          { name: "gemini-2.5-pro", display_name: "Gemini 2.5 Pro" },
-        ]);
-        setImageModels([
-          { name: "imagen-3.0-generate-001", display_name: "Imagen 3" },
-        ]);
-        setAudioVoices([
-          { name: "en-US-Journey-D", display_name: "Journey (US Male)" },
-          { name: "en-US-Standard-A", display_name: "Standard (US Male)" },
-        ]);
+        // Defaults are already rendered — silently swallow the error.
+        console.warn("Could not refresh model list from backend:", err);
       }
     }
     fetchModels();
@@ -163,16 +182,6 @@ export default function Home() {
               </select>
             </div>
             <div className={styles.settingsGroup}>
-              <label className={styles.settingsLabel}>Image Model</label>
-              <select className={styles.settingsSelect} value={imageModel} onChange={(e) => setImageModel(e.target.value)}>
-                {imageModels.length > 0 ? imageModels.map((m) => (
-                  <option key={m.name} value={m.name}>{m.display_name}</option>
-                )) : (
-                  <option value={imageModel}>Loading...</option>
-                )}
-              </select>
-            </div>
-            <div className={styles.settingsGroup}>
               <label className={styles.settingsLabel}>Audio Voice</label>
               <select className={styles.settingsSelect} value={voiceName} onChange={(e) => setVoiceName(e.target.value)}>
                 {audioVoices.length > 0 ? audioVoices.map((v) => (
@@ -245,7 +254,6 @@ export default function Home() {
                 <AssistantBubble 
                   data={msg.content} 
                   usage={msg.usage} 
-                  imageModel={imageModel}
                   voiceName={voiceName}
                 />
               )}
@@ -344,7 +352,7 @@ function ErrorBubble({ message }) {
   );
 }
 
-function AssistantBubble({ data, usage, imageModel, voiceName }) {
+function AssistantBubble({ data, usage, voiceName }) {
   if (!data) return null;
 
   return (
@@ -365,7 +373,7 @@ function AssistantBubble({ data, usage, imageModel, voiceName }) {
       {/* Explanation or Analysis */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>📝 Explanation</h3>
-        <p className={styles.sectionBody}>{data.explanation || data.analysis || data}</p>
+        <p className={styles.sectionBody}>{toStr(data.explanation || data.analysis || data)}</p>
       </div>
 
       {/* Key points */}
@@ -375,35 +383,18 @@ function AssistantBubble({ data, usage, imageModel, voiceName }) {
           <ul className={styles.keyPoints}>
             {data.key_points.map((pt, i) => (
               <li key={i} className={styles.keyPoint}>
-                {pt}
+                {toStr(pt)}
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Diagram prompt — auto-generates */}
-      {data.diagram_prompt && (
+      {/* Diagram Rendering */}
+      {data.diagram_code && data.diagram_type && (
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>🎨 Diagram</h3>
-          <div className={styles.promptCard}>{data.diagram_prompt}</div>
-          <DiagramGenerator prompt={data.diagram_prompt} modelName={imageModel} />
-        </div>
-      )}
-
-      {/* Animation prompt */}
-      {data.animation_prompt && (
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>🎬 Animation Concept</h3>
-          <div className={styles.promptCard}>{data.animation_prompt}</div>
-        </div>
-      )}
-
-      {/* Simulation prompt */}
-      {data.simulation_prompt && (
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>🕹️ Simulation Idea</h3>
-          <div className={styles.promptCard}>{data.simulation_prompt}</div>
+          <DiagramRenderer type={data.diagram_type} code={data.diagram_code} />
         </div>
       )}
 
@@ -419,7 +410,7 @@ function AssistantBubble({ data, usage, imageModel, voiceName }) {
           <div className={styles.followUps}>
             {data.follow_up_questions.map((q, i) => (
               <div key={i} className={styles.followUpCard}>
-                {q}
+                {toStr(q)}
               </div>
             ))}
           </div>
@@ -444,59 +435,52 @@ function AssistantBubble({ data, usage, imageModel, voiceName }) {
   );
 }
 
-function DiagramGenerator({ prompt, modelName }) {
-  const [imageUrl, setImageUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
+function DiagramRenderer({ type, code }) {
+  const containerRef = useRef(null);
   const [error, setError] = useState(null);
 
-  // Auto-generate on mount
   useEffect(() => {
-    let cancelled = false;
-    async function generate() {
-      setLoading(true);
-      setError(null);
+    if (!code) return;
+
+    if (type === "mermaid") {
       try {
-        const res = await fetch("/api/generate-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, model_name: modelName }),
+        mermaid.initialize({ startOnLoad: false, theme: "neutral" });
+        const renderId = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+        mermaid.render(renderId, code).then(({ svg }) => {
+          if (containerRef.current) {
+            containerRef.current.innerHTML = svg;
+          }
+        }).catch(err => {
+          console.error("Mermaid parsing error:", err);
+          setError("Failed to render Mermaid diagram. The generated code might be invalid.");
         });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "Failed to generate image");
-        }
-        const data = await res.json();
-        if (!cancelled && data.status === "success" && data.image_data) {
-          setImageUrl(data.image_data);
-        } else if (!cancelled) {
-          throw new Error("Invalid image data");
-        }
       } catch (err) {
-        if (!cancelled) {
-          console.error(err);
-          setError(err.message || "Could not generate diagram.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+        console.error("Mermaid init/render error:", err);
+        setError("Failed to initialize Mermaid diagram.");
+      }
+    } else if (type === "svg") {
+      // For raw SVG, safely inject it (in a real app, use DOMPurify to sanitize)
+      if (containerRef.current) {
+        containerRef.current.innerHTML = code;
       }
     }
-    generate();
-    return () => { cancelled = true; };
-  }, [prompt, modelName]);
+  }, [type, code]);
 
   return (
-    <div style={{ marginTop: "12px" }}>
-      {loading && (
-        <div className={styles.genImgBtn} style={{ cursor: "default", opacity: 0.7 }}>
-          ⏳ Generating diagram...
+    <div className={styles.diagramWrapper}>
+      {error ? (
+        <div className={styles.errorBubble} style={{ marginTop: 0 }}>
+          <span className={styles.errorIcon}>⚠</span>
+          <p>{error}</p>
+          <pre style={{ fontSize: "11px", overflowX: "auto", marginTop: "8px" }}>{code}</pre>
         </div>
+      ) : (
+        <div 
+          ref={containerRef} 
+          className={styles.diagramContainer} 
+          style={{ width: "100%", overflowX: "auto", background: "white", padding: "16px", borderRadius: "8px", border: "1px solid var(--border)" }}
+        />
       )}
-      {imageUrl && (
-        <div className={styles.generatedImageWrapper}>
-          <img src={imageUrl} alt="Generated diagram" className={styles.generatedImage} />
-        </div>
-      )}
-      {error && <span className={styles.audioError} style={{ display: "block", marginTop: "4px" }}>⚠ {error}</span>}
     </div>
   );
 }

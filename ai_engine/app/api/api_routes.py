@@ -28,34 +28,83 @@ router = APIRouter(tags=["Explanations"])
 
 # ─── Dynamic Model Listing ──────────────────────────────────────────────────
 
+# Cache so we only hit the Gemini models.list() API once per server lifetime
+_models_cache: dict | None = None
+
 @router.get(
     "/models",
     summary="List Available Models",
     description="Fetch available Gemini text models, image models, and audio voices"
 )
 async def list_models() -> dict:
-    """List available models from the Gemini API and supported voices."""
+    """List available models — cached after first fetch to avoid slow startup."""
+    global _models_cache
+    if _models_cache is not None:
+        return _models_cache
+
     try:
         text_models = []
         image_models = []
-        
+
         settings = get_settings()
-        client = genai.Client(api_key=settings.gemini_api_key)
         
+        # Configure specifically for Vertex AI
+        client = genai.Client(
+            vertexai=True,
+            project=settings.gcp_project_id,
+            location=settings.gcp_location
+        )
+
         for m in client.models.list():
+            name_lower = m.name.lower()
+            description = getattr(m, "description", "") or ""
+            description_lower = description.lower()
+
             info = {
                 "name": m.name.replace("models/", ""),
                 "display_name": m.display_name,
-                "description": getattr(m, "description", ""),
+                "description": description,
             }
-            methods = getattr(m, "supported_generation_methods", [])
-            methods_str = [str(method) for method in methods]
-            
-            if "generateContent" in methods_str:
+
+            # ── Text models ──────────────────────────────────────────────────
+            # Use name-based matching: any Gemini model that isn't a pure
+            # embedding / text-embedding / aqa / vision-only model.
+            # The old methods_str approach broke because the SDK returns enum
+            # objects whose str() is NOT the literal string "generateContent".
+            is_gemini = "gemini" in name_lower
+            is_not_embedding = "embedding" not in name_lower
+            is_not_aqa = "aqa" not in name_lower
+            is_not_tts = "tts" not in name_lower
+
+            if is_gemini and is_not_embedding and is_not_aqa and is_not_tts:
                 text_models.append(info)
-            if "generateImages" in methods_str or "imagen" in m.name.lower():
+
+            # ── Image models ─────────────────────────────────────────────────
+            # Include imagen models BUT exclude "Vertex served" ones — those
+            # require a Vertex AI / GCP project and are not accessible with a
+            # standard Gemini API key.
+            is_imagen = "imagen" in name_lower
+            is_vertex_only = "vertex" in description_lower
+
+            if is_imagen and not is_vertex_only:
                 image_models.append(info)
-        
+
+        # ── Sort for good UX ──────────────────────────────────────────────────
+        # Prefer newer/faster models first for text; maintain API list order
+        # for images (newest first is fine).
+        def _model_sort_key(m: dict) -> tuple:
+            n = m["name"].lower()
+            # Push experimental / preview to the bottom
+            is_exp = any(x in n for x in ("exp", "preview", "latest", "thinking"))
+            # Prefer gemini-2.x over gemini-1.x
+            gen = 0
+            if "2.5" in n: gen = -3
+            elif "2.0" in n: gen = -2
+            elif "1.5" in n: gen = -1
+            return (int(is_exp), gen, n)
+
+        text_models.sort(key=_model_sort_key)
+
         # Audio voices are from GCP TTS — not discoverable via genai SDK
         audio_voices = [
             {"name": "en-US-Journey-D", "display_name": "Journey (US Male)"},
@@ -66,19 +115,35 @@ async def list_models() -> dict:
             {"name": "en-GB-Standard-B", "display_name": "Standard (UK Male)"},
             {"name": "en-AU-Standard-A", "display_name": "Standard (AU Female)"},
         ]
-        
-        return {
+
+        _models_cache = {
             "status": "success",
             "text_models": text_models,
             "image_models": image_models,
             "audio_voices": audio_voices,
         }
+        logger.info(f"Models cached: {len(text_models)} text, {len(image_models)} image models")
+        return _models_cache
+
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list models"
         )
+
+
+@router.delete(
+    "/models/cache",
+    summary="Clear Model Cache",
+    description="Force the model list to be re-fetched from the Gemini API on next request"
+)
+async def clear_models_cache() -> dict:
+    """Clear cached model list so it's refreshed on the next /models call."""
+    global _models_cache
+    _models_cache = None
+    logger.info("Model cache cleared")
+    return {"status": "success", "message": "Model cache cleared"}
 
 
 # ─── Explain ─────────────────────────────────────────────────────────────────
@@ -263,49 +328,6 @@ async def analyze_image(
         )
 
 
-# ─── Image Generation ────────────────────────────────────────────────────────
-
-@router.post(
-    "/generate-image",
-    summary="Generate Image",
-    description="Generate an image using the requested descriptive prompt"
-)
-async def generate_image(
-    prompt: str = Query(..., description="Prompt to generate an image from"),
-    model_name: Optional[str] = Query("imagen-3.0-generate-001", description="Image generation model name")
-) -> dict:
-    """Generate an image from a prompt."""
-    try:
-        is_valid, error_msg = validate_request_input(prompt)
-        if not is_valid:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_msg or "Invalid prompt"
-            )
-            
-        logger.info(f"Generating image with prompt: {prompt[:50]}...")
-        
-        client = get_gemini_client()
-        image_bytes = client.generate_image(prompt, model_name=model_name)
-        
-        base64_encoded = base64.b64encode(image_bytes).decode("utf-8")
-        
-        logger.info("Image generation completed")
-        return {
-            "status": "success",
-            "image_data": f"data:image/png;base64,{base64_encoded}"
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error generating image: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred during image generation"
-        )
-
-
 # ─── Endpoints Listing ───────────────────────────────────────────────────────
 
 @router.get(
@@ -322,7 +344,6 @@ async def list_endpoints() -> dict:
             "POST /api/explain": "Generate a single explanation",
             "POST /api/explain/bulk": "Generate multiple explanations",
             "POST /api/analyze-image": "Analyze uploaded image/diagram",
-            "POST /api/generate-image": "Generate an image from a textual prompt",
             "GET /health": "Health check",
             "GET /config": "Get configuration",
             "GET /api/endpoints": "List all endpoints"

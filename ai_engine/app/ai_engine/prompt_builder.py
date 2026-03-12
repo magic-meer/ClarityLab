@@ -15,13 +15,11 @@ JSON_FORMAT_TEMPLATE = """{
  "difficulty": "",
  "explanation": "",
  "key_points": [],
- "diagram_prompt": null,
- "animation_prompt": null,
- "simulation_prompt": null,
+ "diagram_type": null,
+ "diagram_code": null,
  "narration_script": null,
  "follow_up_questions": []
 }"""
-
 
 def build_explanation_prompt(question: str) -> str:
     """
@@ -52,10 +50,9 @@ Your task: Explain the following concept or answer the following question.
 
 3. **Key Learning Points**: List 3-5 important concepts the student should understand.
 
-4. **Decide Which Outputs Are Useful**: Not every concept needs every type of multimedia output. Think carefully about which outputs would genuinely help explain THIS specific topic:
-   - **diagram_prompt**: If a visual diagram would help (e.g. structures, processes, relationships), provide a detailed prompt for generating it. If not useful, set to null.
-   - **animation_prompt**: If an animation showing change over time would help (e.g. processes, mechanics, algorithms), provide a detailed prompt. If not useful, set to null.
-   - **simulation_prompt**: If an interactive simulation would reinforce learning (e.g. adjustable parameters, experimentation), provide a concept. If not useful, set to null.
+4. **Decide Which Outputs Are Useful**: Think carefully about which outputs would genuinely help explain THIS specific topic:
+   - **diagram_type**: If a visual diagram would help (e.g. structures, processes, relationships), set this to "mermaid" or "svg". If not useful, set to null.
+   - **diagram_code**: If `diagram_type` is set, provide the RAW CODE for the diagram. If "mermaid", provide raw Mermaid JS graph/flowchart code. If "svg", provide raw valid SVG XML code. Do NOT wrap it in markdown codeblocks (no ```). If not useful, set to null.
    - **narration_script**: If a spoken narration summarizing the concept would be helpful (almost always yes), provide a clear 2-3 sentence narration script. If for some reason narration isn't suitable, set to null.
 
 5. **Follow-up Questions**: Suggest 2-3 thought-provoking questions to deepen understanding.

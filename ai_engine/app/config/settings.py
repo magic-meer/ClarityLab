@@ -18,7 +18,8 @@ class Settings:
     """Application settings with validation."""
     
     def __init__(self):
-        self.gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+        self.gcp_project_id: str = os.getenv("GCP_PROJECT_ID", "")
+        self.gcp_location: str = os.getenv("GCP_LOCATION", "us-central1")
         self.model_name: str = os.getenv("MODEL_NAME", "gemini-1.5-pro")
         self.debug_mode: bool = os.getenv("DEBUG_MODE", "false").lower() == "true"
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
@@ -27,13 +28,14 @@ class Settings:
     
     def _validate_settings(self) -> None:
         """Validate that all required settings are present."""
-        if not self.gemini_api_key:
-            logger.warning("GEMINI_API_KEY not set in environment variables")
+        if not self.gcp_project_id:
+            logger.warning("GCP_PROJECT_ID not set in environment variables. Vertex AI calls may fail.")
     
     def to_dict(self) -> dict:
         """Convert settings to dictionary."""
         return {
-            "gemini_api_key": "***" if self.gemini_api_key else "NOT_SET",
+            "gcp_project_id": self.gcp_project_id,
+            "gcp_location": self.gcp_location,
             "model_name": self.model_name,
             "debug_mode": self.debug_mode,
             "log_level": self.log_level,

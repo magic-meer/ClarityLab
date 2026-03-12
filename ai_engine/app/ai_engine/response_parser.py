@@ -15,6 +15,43 @@ logger = setup_logger(__name__)
 class ResponseParser:
     """Parse and validate API responses."""
 
+    # Fields that must be plain strings (not objects/dicts)
+    STRING_FIELDS = {
+        "topic", "difficulty", "explanation",
+        "diagram_type", "diagram_code",
+        "narration_script",
+    }
+
+    @staticmethod
+    def _obj_to_str(value: Any) -> str:
+        """Convert a non-string value to a readable string."""
+        if isinstance(value, dict):
+            # Prefer common prose keys; fall back to JSON dump
+            for key in ("description", "text", "content", "summary", "body", "value"):
+                if key in value and isinstance(value[key], str):
+                    return value[key]
+            return json.dumps(value)
+        if isinstance(value, list):
+            return " ".join(ResponseParser._obj_to_str(v) for v in value)
+        return str(value)
+
+    @classmethod
+    def normalize_string_fields(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Ensure all fields that should be strings ARE strings.
+        The model occasionally returns objects or lists for these fields.
+        """
+        for field in cls.STRING_FIELDS:
+            if field in data and data[field] is not None:
+                if not isinstance(data[field], str):
+                    original = data[field]
+                    data[field] = cls._obj_to_str(original)
+                    logger.warning(
+                        f"Field '{field}' was {type(original).__name__}, "
+                        f"converted to string: {data[field][:80]}..."
+                    )
+        return data
+
     @staticmethod
     def parse_json_response(response_text: str) -> Dict[str, Any]:
         """
@@ -60,8 +97,8 @@ class ResponseParser:
 
         raise ResponseParsingError("Could not extract valid JSON from response")
 
-    @staticmethod
     def validate_explanation_response(
+        self,
         data: Dict[str, Any],
         required_fields: Optional[list] = None
     ) -> bool:
@@ -88,6 +125,9 @@ class ResponseParser:
 
         if not isinstance(data, dict):
             raise ResponseParsingError("Response must be a dictionary")
+
+        # Normalize string fields BEFORE validation so type checks pass
+        self.normalize_string_fields(data)
 
         missing_fields = [f for f in required_fields if f not in data]
         if missing_fields:

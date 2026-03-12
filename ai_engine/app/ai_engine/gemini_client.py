@@ -1,6 +1,6 @@
 """
-Gemini API client implementation supporting multimodal inputs and image generation.
-Uses the official google-genai SDK.
+Gemini API client implementation supporting multimodal inputs.
+Uses the official google-genai SDK formatted for Vertex AI.
 """
 
 from google import genai
@@ -16,16 +16,20 @@ logger = logging.getLogger(__name__)
 
 
 class GeminiClient:
-    """Wrapper for the Gemini API using google-genai SDK."""
+    """Wrapper for the Gemini API using google-genai SDK (Vertex AI backend)."""
 
     def __init__(self):
         """Initialize the Gemini client with settings."""
         self.settings = get_settings()
         try:
-            # The client automatically picks up GEMINI_API_KEY from the environment
-            self.client = genai.Client(api_key=self.settings.gemini_api_key)
+            # Configure specifically for Vertex AI
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.settings.gcp_project_id,
+                location=self.settings.gcp_location
+            )
             self.default_model = self.settings.model_name
-            logger.info(f"Gemini client initialized with model: {self.default_model}")
+            logger.info(f"Gemini client initialized for Vertex AI with model: {self.default_model}")
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
             raise GeminiAPIError(f"Initialization failed: {str(e)}")
@@ -121,45 +125,6 @@ class GeminiClient:
         except Exception as e:
             logger.error(f"Gemini API multimodal error: {e}")
             raise GeminiAPIError(f"Multimodal generation failed: {str(e)}")
-
-    def generate_image(
-        self,
-        prompt: str,
-        model_name: Optional[str] = "imagen-3.0-generate-001"
-    ) -> bytes:
-        """
-        Generate an image using Google's Imagen API through GenAI SDK.
-
-        Args:
-            prompt: The descriptive prompt
-            model_name: Image generation model name
-            
-        Returns:
-            Image bytes
-        """
-        if not prompt or not prompt.strip():
-            raise ValueError("Prompt cannot be empty")
-            
-        try:
-            logger.debug(f"Generating image with prompt: {prompt[:50]}")
-            result = self.client.models.generate_images(
-                model=model_name or "imagen-3.0-generate-001",
-                prompt=prompt,
-                config=types.GenerateImagesConfig(
-                    number_of_images=1,
-                    output_mime_type="image/png"
-                )
-            )
-
-            if result and result.generated_images:
-                # The SDK directly provides the image bytes
-                return result.generated_images[0].image.image_bytes
-            
-            raise GeminiAPIError("No image returned from generation")
-            
-        except Exception as e:
-            logger.error(f"Image generation error: {e}")
-            raise GeminiAPIError(f"Image generation failed: {str(e)}")
 
 
 # Singleton instance

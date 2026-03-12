@@ -70,6 +70,21 @@ class ExplanationGenerator:
             # Attach usage
             parsed_response["usage"] = response_data.get("usage", {})
 
+            # If an image_prompt was provided and is not empty, generate the image
+            image_prompt = parsed_response.get("image_prompt")
+            if image_prompt and str(image_prompt).strip() and str(image_prompt).strip().lower() != "null":
+                logger.debug(f"Image prompt detected, generating image: {image_prompt[:50]}...")
+                try:
+                    # You can pass a specific model_name if needed, or rely on default
+                    image_result = self.client.generate_image(prompt=image_prompt)
+                    parsed_response["image_base64"] = image_result.get("image_base64")
+                    parsed_response["image_mime_type"] = image_result.get("mime_type")
+                    logger.info("Image generated and attached to response")
+                except Exception as img_err:
+                    logger.error(f"Failed to generate accompanying image: {img_err}")
+                    parsed_response["image_base64"] = None
+                    parsed_response["image_error"] = str(img_err)
+
             logger.info("Explanation generated successfully")
             return {
                 "status": "success",

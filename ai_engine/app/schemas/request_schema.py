@@ -21,6 +21,21 @@ class ExplanationRequest(BaseModel):
         }
 
 
+class ImageGenerationRequest(BaseModel):
+    """Request schema for image generation endpoint."""
+
+    prompt: str = Field(..., min_length=5, max_length=1000, description="Prompt to generate image from")
+    model_name: Optional[str] = Field("imagen-3.0-generate-001", description="Model to use for generation")
+
+    class Config:
+        """Pydantic config."""
+        json_schema_extra = {
+            "example": {
+                "prompt": "A simple red apple on a white background, low detail"
+            }
+        }
+
+
 class ImageAnalysisRequest(BaseModel):
     """Request schema for image analysis endpoint."""
 

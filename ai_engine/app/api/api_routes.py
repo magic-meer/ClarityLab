@@ -17,7 +17,7 @@ from ai_engine.explanation_generator import ExplanationGenerator
 from ai_engine.multimodal_handler import MultiModalHandler
 from ai_engine.gemini_client import get_gemini_client
 from utils.exceptions import AIEngineException
-from schemas.request_schema import ExplanationRequest
+from schemas.request_schema import ExplanationRequest, ImageGenerationRequest
 from utils.validators import validate_request_input, sanitize_question
 from config.logger import setup_logger
 
@@ -60,8 +60,12 @@ async def list_models() -> dict:
             description = getattr(m, "description", "") or ""
             description_lower = description.lower()
 
+            # Extract the actual model name for Vertex AI prediction.
+            # Example: "publishers/google/models/gemini-2.5-flash" -> "gemini-2.5-flash"
+            model_name_id = m.name.split("/")[-1]
+
             info = {
-                "name": m.name.replace("models/", ""),
+                "name": model_name_id,
                 "display_name": m.display_name,
                 "description": description,
             }
@@ -328,6 +332,48 @@ async def analyze_image(
         )
 
 
+# ─── Image Generation ────────────────────────────────────────────────────────
+
+@router.post(
+    "/generate-image",
+    summary="Generate Image",
+    description="Generate an image using Vertex AI Imagen model based on a text prompt"
+)
+async def generate_image(request: ImageGenerationRequest) -> dict:
+    """Generate image from a prompt."""
+    try:
+        logger.info(f"Processing image generation request: {request.prompt[:50]}...")
+
+        is_valid, error_msg = validate_request_input(request.prompt)
+        if not is_valid:
+            logger.warning(f"Validation failed: {error_msg}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid input: {error_msg}"
+            )
+
+        client = get_gemini_client()
+        result = client.generate_image(
+            prompt=request.prompt,
+            model_name=request.model_name
+        )
+
+        logger.info("Image generated successfully")
+        return {
+            "status": "success",
+            "data": result
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating image: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate image"
+        )
+
+
 # ─── Endpoints Listing ───────────────────────────────────────────────────────
 
 @router.get(
@@ -344,6 +390,7 @@ async def list_endpoints() -> dict:
             "POST /api/explain": "Generate a single explanation",
             "POST /api/explain/bulk": "Generate multiple explanations",
             "POST /api/analyze-image": "Analyze uploaded image/diagram",
+            "POST /api/generate-image": "Generate image from text prompt",
             "GET /health": "Health check",
             "GET /config": "Get configuration",
             "GET /api/endpoints": "List all endpoints"

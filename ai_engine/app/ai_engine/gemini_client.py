@@ -51,6 +51,9 @@ class GeminiClient:
         """
         try:
             model = model_name or self.default_model
+            if "/" in model:
+                model = model.split("/")[-1]
+                
             logger.debug(f"Sending text generation request using model: {model}")
             
             response = self.client.models.generate_content(
@@ -82,7 +85,7 @@ class GeminiClient:
         model_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Generate text content based on an image and a prompt.
+        Generate text content based on an image and a pr)ompt.
 
         Args:
             prompt: Question or instruction about the image
@@ -94,6 +97,9 @@ class GeminiClient:
         """
         try:
             model = model_name or self.default_model
+            if "/" in model:
+                model = model.split("/")[-1]
+                
             path = Path(image_path)
             if not path.exists():
                 raise FileNotFoundError(f"Image not found at {image_path}")
@@ -125,6 +131,51 @@ class GeminiClient:
         except Exception as e:
             logger.error(f"Gemini API multimodal error: {e}")
             raise GeminiAPIError(f"Multimodal generation failed: {str(e)}")
+    def generate_image(
+        self,
+        prompt: str,
+        model_name: Optional[str] = "imagen-3.0-generate-001"
+    ) -> Dict[str, Any]:
+        """
+        Generate an image from a text prompt.
+
+        Args:
+            prompt: Text prompt for the image.
+            model_name: Optional model override (defaults to imagen-3.0-generate-001).
+
+        Returns:
+            Dictionary containing 'image_base64' and 'mime_type'.
+        """
+        try:
+            logger.debug(f"Sending image generation request using model: {model_name}")
+            import base64
+            
+            result = self.client.models.generate_images(
+                model=model_name,
+                prompt=prompt,
+                config=types.GenerateImagesConfig(
+                    number_of_images=1,
+                    output_mime_type="image/jpeg",
+                    aspect_ratio="1:1"
+                )
+            )
+
+            if not result.generated_images:
+                raise GeminiAPIError("No images were generated.")
+
+            generated_image = result.generated_images[0]
+            
+            # Convert bytes to base64
+            image_b64 = base64.b64encode(generated_image.image.image_bytes).decode('utf-8')
+            
+            return {
+                "image_base64": image_b64,
+                "mime_type": "image/jpeg"
+            }
+
+        except Exception as e:
+            logger.error(f"Gemini API image generation error: {e}")
+            raise GeminiAPIError(f"Image generation failed: {str(e)}")
 
 
 # Singleton instance

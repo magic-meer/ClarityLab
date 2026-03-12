@@ -20,7 +20,7 @@ class Settings:
     def __init__(self):
         self.gcp_project_id: str = os.getenv("GCP_PROJECT_ID", "")
         self.gcp_location: str = os.getenv("GCP_LOCATION", "us-central1")
-        self.model_name: str = os.getenv("MODEL_NAME", "gemini-1.5-pro")
+        self.model_name: str = os.getenv("MODEL_NAME", "gemini-2.5-flash")
         self.debug_mode: bool = os.getenv("DEBUG_MODE", "false").lower() == "true"
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
         

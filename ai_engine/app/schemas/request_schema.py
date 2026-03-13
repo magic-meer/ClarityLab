@@ -11,6 +11,9 @@ class ExplanationRequest(BaseModel):
 
     question: str = Field(..., min_length=5, max_length=1000, description="Question or concept to explain")
     model_name: Optional[str] = Field(None, description="Model to use for generation")
+    generate_diagram: bool = Field(True, description="Whether to allow diagram generation")
+    generate_image: bool = Field(True, description="Whether to allow image generation")
+    generate_audio: bool = Field(True, description="Whether to allow audio narration generation")
 
     class Config:
         """Pydantic config."""
@@ -42,6 +45,9 @@ class ImageAnalysisRequest(BaseModel):
     question: str = Field(..., min_length=5, max_length=500, description="Question about the image")
     context: Optional[str] = Field(None, max_length=500, description="Additional context")
     model_name: Optional[str] = Field(None, description="Model to use for image analysis")
+    generate_diagram: bool = Field(True, description="Whether to allow diagram generation")
+    generate_image: bool = Field(True, description="Whether to allow image generation")
+    generate_audio: bool = Field(True, description="Whether to allow audio narration generation")
 
     class Config:
         """Pydantic config."""

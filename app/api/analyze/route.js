@@ -5,6 +5,9 @@ export async function POST(request) {
     const context = formData.get("context");
     const model_name = formData.get("model_name");
     const file = formData.get("file");
+    const generate_diagram = formData.get("generate_diagram");
+    const generate_image = formData.get("generate_image");
+    const generate_audio = formData.get("generate_audio");
 
     if (!question || question.trim().length < 5) {
       return Response.json(
@@ -23,15 +26,18 @@ export async function POST(request) {
     const backendUrl =
       process.env.BACKEND_URL || "http://localhost:8000";
 
-    const params = new URLSearchParams({ question });
-    if (context) params.append("context", context);
-    if (model_name) params.append("model_name", model_name);
-
+    // Build backend FormData with all fields
     const backendForm = new FormData();
     backendForm.append("file", file);
+    backendForm.append("question", question);
+    if (context) backendForm.append("context", context);
+    if (model_name) backendForm.append("model_name", model_name);
+    if (generate_diagram !== null && generate_diagram !== undefined) backendForm.append("generate_diagram", generate_diagram);
+    if (generate_image !== null && generate_image !== undefined) backendForm.append("generate_image", generate_image);
+    if (generate_audio !== null && generate_audio !== undefined) backendForm.append("generate_audio", generate_audio);
 
     const res = await fetch(
-      `${backendUrl}/api/analyze-image?${params.toString()}`,
+      `${backendUrl}/api/analyze-image`,
       { method: "POST", body: backendForm }
     );
 

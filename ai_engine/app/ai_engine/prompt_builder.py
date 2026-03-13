@@ -22,13 +22,21 @@ JSON_FORMAT_TEMPLATE = """{
  "follow_up_questions": []
 }"""
 
-def build_explanation_prompt(question: str) -> str:
+def build_explanation_prompt(
+    question: str,
+    generate_diagram: bool = True,
+    generate_image: bool = True,
+    generate_audio: bool = True
+) -> str:
     """
     Build optimized prompt for generating an explanation on any topic.
     The AI decides the difficulty level and which multimedia outputs are useful.
 
     Args:
         question: Concept or question to explain
+        generate_diagram: Allow diagram generation
+        generate_image: Allow image generation
+        generate_audio: Allow audio generation
 
     Returns:
         Optimized prompt string
@@ -52,10 +60,10 @@ Your task: Explain the following concept or answer the following question.
 3. **Key Learning Points**: List 3-5 important concepts the student should understand.
 
 4. **Decide Which Outputs Are Useful**: Think carefully about which outputs would genuinely help explain THIS specific topic:
-   - **diagram_type**: If a structural visual diagram would help (e.g. flowcharts, data structures, processes, relationships), set this to "mermaid" or "svg". If not useful, set to null.
-   - **diagram_code**: If `diagram_type` is set, provide the RAW CODE for the diagram. If "mermaid", provide raw Mermaid JS graph/flowchart code. If "svg", provide raw valid SVG XML code. Do NOT wrap it in markdown codeblocks (no ```). If not useful, set to null.
-   - **image_prompt**: If a photorealistic, conceptual, or illustrative image would help explain the topic (e.g., historical events, geographical locations, physical objects, abstract artistic concepts), provide a highly detailed, descriptive prompt that can be sent to an image generation AI. If not useful, set to null.
-   - **narration_script**: If a spoken narration summarizing the concept would be helpful (almost always yes), provide a clear 2-3 sentence narration script. If for some reason narration isn't suitable, set to null.
+   - **diagram_type**: {"If a structural visual diagram would help, set this to 'mermaid' or 'svg'. If not useful, set to null." if generate_diagram else "Strictly set to null. User disabled diagram generation."}
+   - **diagram_code**: {"If `diagram_type` is set, provide the RAW CODE for the diagram. Do NOT wrap it in markdown codeblocks (no ```). If not useful, set to null." if generate_diagram else "Strictly set to null. User disabled diagram generation."}
+   - **image_prompt**: {"If an illustrative image would help explain the topic, provide a highly detailed, descriptive prompt. If not useful, set to null." if generate_image else "Strictly set to null. User disabled image generation."}
+   - **narration_script**: {"If a spoken narration summarizing the concept would be helpful, provide a clear 2-3 sentence narration script. If not suitable, set to null." if generate_audio else "Strictly set to null. User disabled audio narration generation."}
 
 5. **Follow-up Questions**: Suggest 2-3 thought-provoking questions to deepen understanding.
 
@@ -80,7 +88,10 @@ build_physics_prompt = build_explanation_prompt
 
 def build_image_analysis_prompt(
     question: str,
-    context: Optional[str] = None
+    context: Optional[str] = None,
+    generate_diagram: bool = True,
+    generate_image: bool = True,
+    generate_audio: bool = True
 ) -> str:
     """
     Build prompt for analyzing uploaded images/diagrams.
@@ -113,7 +124,14 @@ Provide a detailed, educational explanation that:
 4. Identifies any misconceptions a student might have
 5. Suggests follow-up learning topics
 
-Format your response as a clear, structured explanation."""
+Also provide responses in structured JSON matching this format:
+{JSON_FORMAT_TEMPLATE}
+
+Follow the same rules for deciding outputs:
+   - **diagram_type**: {"If a structural visual diagram would help, set this to 'mermaid' or 'svg'. If not useful, set to null." if generate_diagram else "Strictly set to null. User disabled diagram generation."}
+   - **diagram_code**: {"If `diagram_type` is set, provide the RAW CODE for the diagram. If not useful, set to null." if generate_diagram else "Strictly set to null."}
+   - **image_prompt**: {"If an illustrative image would help explain the topic, provide a highly detailed, descriptive prompt. If not useful, set to null." if generate_image else "Strictly set to null."}
+   - **narration_script**: {"If a spoken narration summarizing the concept would be helpful, provide a 2-3 sentence narration script. If not suitable, set to null." if generate_audio else "Strictly set to null."}"""
 
     logger.debug(f"Image analysis prompt built for question: {question[:50]}...")
     return prompt

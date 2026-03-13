@@ -3,7 +3,7 @@ API routes for ClarityLab AI Learning Agent.
 Handles HTTP endpoints for explanation generation and image analysis.
 """
 
-from fastapi import APIRouter, HTTPException, status, Query, File, UploadFile
+from fastapi import APIRouter, HTTPException, status, Query, File, UploadFile, Form
 from typing import Optional, List
 import logging
 import tempfile
@@ -173,10 +173,15 @@ async def explain_concept(request: ExplanationRequest) -> dict:
 
         question = sanitize_question(request.question)
 
+        # Use ExplanationGenerator to get structured response
         generator = ExplanationGenerator()
+        
         result = generator.generate_explanation(
             question=question,
-            model_name=request.model_name
+            model_name=request.model_name,
+            generate_diagram=request.generate_diagram,
+            generate_image=request.generate_image,
+            generate_audio=request.generate_audio
         )
 
         if result.get("status") != "success":
@@ -275,12 +280,17 @@ async def explain_multiple(
     description="Analyze an image, diagram, or learning material with a specific question"
 )
 async def analyze_image(
-    question: str = Query(..., description="Question about the image"),
-    context: Optional[str] = Query(None, description="Additional context"),
-    model_name: Optional[str] = Query(None, description="Model override"),
-    file: UploadFile = File(...)
+    question: str = Form(..., description="Question about the image"),
+    context: Optional[str] = Form(None, description="Additional context"),
+    model_name: Optional[str] = Form(None, description="Model override"),
+    file: UploadFile = File(...),
+    generate_diagram: bool = Form(True, description="Whether to generate diagrams"),
+    generate_image: bool = Form(True, description="Whether to generate images"),
+    generate_audio: bool = Form(True, description="Whether to generate audio"),
 ) -> dict:
-    """Analyze an uploaded image or diagram."""
+    """
+    Analyze an uploaded image or diagram.
+    """
     try:
         is_valid, error_msg = validate_request_input(question)
         if not is_valid:

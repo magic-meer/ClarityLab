@@ -1,7 +1,7 @@
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { question, model_name } = body;
+    const { question, model_name, generate_diagram, generate_image, generate_audio } = body;
 
     if (!question || question.trim().length < 5) {
       return Response.json(
@@ -15,6 +15,9 @@ export async function POST(request) {
 
     const payload = { question };
     if (model_name) payload.model_name = model_name;
+    if (generate_diagram !== undefined) payload.generate_diagram = generate_diagram;
+    if (generate_image !== undefined) payload.generate_image = generate_image;
+    if (generate_audio !== undefined) payload.generate_audio = generate_audio;
 
     const res = await fetch(`${backendUrl}/api/explain`, {
       method: "POST",

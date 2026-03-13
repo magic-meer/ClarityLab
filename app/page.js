@@ -26,6 +26,9 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [modelName, setModelName] = useState("gemini-2.5-flash");
   const [voiceName, setVoiceName] = useState("en-US-Journey-D");
+  const [generateDiagram, setGenerateDiagram] = useState(true);
+  const [generateImage, setGenerateImage] = useState(true);
+  const [generateAudio, setGenerateAudio] = useState(true);
   const [file, setFile] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -109,6 +112,9 @@ export default function Home() {
         formData.append("question", userQ);
         formData.append("model_name", modelName);
         formData.append("file", currentFile);
+        formData.append("generate_diagram", generateDiagram);
+        formData.append("generate_image", generateImage);
+        formData.append("generate_audio", generateAudio);
 
         res = await fetch("/api/analyze", {
           method: "POST",
@@ -118,7 +124,13 @@ export default function Home() {
         res = await fetch("/api/explain", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: userQ, model_name: modelName }),
+          body: JSON.stringify({ 
+            question: userQ, 
+            model_name: modelName,
+            generate_diagram: generateDiagram,
+            generate_image: generateImage,
+            generate_audio: generateAudio
+          }),
         });
       }
 
@@ -190,6 +202,26 @@ export default function Home() {
                   <option value={voiceName}>Loading...</option>
                 )}
               </select>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.sidebarSection}>
+          <h3 className={styles.sidebarTitle}>Features</h3>
+          <div className={styles.settingsSection}>
+            <div className={styles.settingsGroup}>
+              <label className={styles.settingsLabel}>
+                <input type="checkbox" checked={generateDiagram} onChange={(e) => setGenerateDiagram(e.target.checked)} /> 
+                Diagrams (Auto)
+              </label>
+              <label className={styles.settingsLabel}>
+                <input type="checkbox" checked={generateImage} onChange={(e) => setGenerateImage(e.target.checked)} /> 
+                Images (Auto)
+              </label>
+              <label className={styles.settingsLabel}>
+                <input type="checkbox" checked={generateAudio} onChange={(e) => setGenerateAudio(e.target.checked)} /> 
+                Audio (Auto)
+              </label>
             </div>
           </div>
         </div>
@@ -395,6 +427,18 @@ function AssistantBubble({ data, usage, voiceName }) {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>🎨 Diagram</h3>
           <DiagramRenderer type={data.diagram_type} code={data.diagram_code} />
+        </div>
+      )}
+
+      {/* Generated Image Rendering */}
+      {data.image_base64 && (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>🖼️ Generated Image</h3>
+          <img 
+            src={`data:${data.image_mime_type || 'image/jpeg'};base64,${data.image_base64}`} 
+            alt="Generated illustration" 
+            style={{ width: "100%", borderRadius: "8px", border: "1px solid var(--border)" }} 
+          />
         </div>
       )}
 

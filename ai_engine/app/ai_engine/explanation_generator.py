@@ -30,7 +30,10 @@ class ExplanationGenerator:
     def generate_explanation(
         self,
         question: str,
-        model_name: Optional[str] = None
+        model_name: Optional[str] = None,
+        generate_diagram: bool = True,
+        generate_image: bool = True,
+        generate_audio: bool = True
     ) -> Dict[str, Any]:
         """
         Generate a complete explanation.
@@ -55,7 +58,12 @@ class ExplanationGenerator:
             logger.info(f"Generating explanation for: {question[:50]}...")
 
             # Build optimized prompt (AI decides difficulty and outputs)
-            prompt = build_explanation_prompt(question=question)
+            prompt = build_explanation_prompt(
+                question=question,
+                generate_diagram=generate_diagram,
+                generate_image=generate_image,
+                generate_audio=generate_audio
+            )
             validate_prompt(prompt)
 
             # Get response from Gemini
@@ -126,7 +134,10 @@ class ExplanationGenerator:
     def generate_bulk_explanations(
         self,
         questions: list[str],
-        model_name: Optional[str] = None
+        model_name: Optional[str] = None,
+        generate_diagram: bool = True,
+        generate_image: bool = True,
+        generate_audio: bool = True
     ) -> list[Dict[str, Any]]:
         """
         Generate explanations for multiple questions.
@@ -141,7 +152,13 @@ class ExplanationGenerator:
         results = []
         for i, question in enumerate(questions, 1):
             logger.debug(f"Processing question {i}/{len(questions)}")
-            result = self.generate_explanation(question, model_name=model_name)
+            result = self.generate_explanation(
+                question, 
+                model_name=model_name,
+                generate_diagram=generate_diagram,
+                generate_image=generate_image,
+                generate_audio=generate_audio
+            )
             results.append(result)
 
         return results
@@ -154,7 +171,10 @@ PhysicsExplanationGenerator = ExplanationGenerator
 # Convenience function
 def generate_explanation(
     question: str,
-    model_name: Optional[str] = None
+    model_name: Optional[str] = None,
+    generate_diagram: bool = True,
+    generate_image: bool = True,
+    generate_audio: bool = True
 ) -> Dict[str, Any]:
     """
     Generate an explanation (convenience function).
@@ -167,7 +187,13 @@ def generate_explanation(
         Explanation result dictionary
     """
     generator = ExplanationGenerator()
-    return generator.generate_explanation(question, model_name=model_name)
+    return generator.generate_explanation(
+        question, 
+        model_name=model_name,
+        generate_diagram=generate_diagram,
+        generate_image=generate_image,
+        generate_audio=generate_audio
+    )
 
 
 # Backward-compatible alias

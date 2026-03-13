@@ -10,7 +10,7 @@ from PIL import Image
 
 from config.logger import setup_logger
 from ai_engine.gemini_client import get_gemini_client
-from ai_engine.prompt_builder import build_image_analysis_prompt
+from ai_engine.prompt_builder import build_image_analysis_prompt, validate_prompt
 from utils.exceptions import InvalidImageError, AIEngineException
 
 logger = setup_logger(__name__)
@@ -24,46 +24,53 @@ class MultiModalHandler:
         self.client = get_gemini_client()
         logger.debug("MultiModalHandler initialized")
     
-    def explain_image(
+    def analyze_image(
         self,
         question: str,
-        image_path: str,
+        image_bytes: bytes,
+        mime_type: str,
         context: Optional[str] = None,
-        model_name: Optional[str] = None
+        model_name: Optional[str] = None,
+        generate_diagram: bool = True,
+        generate_image: bool = True,
+        generate_audio: bool = True
     ) -> Dict[str, Any]:
         """
-        Explain a diagram or image.
+        Analyze an image or diagram.
         
         Args:
             question: Question about the image
-            image_path: Path to image file
+            image_bytes: Raw bytes of the image file
+            mime_type: MIME type of the image (e.g., 'image/jpeg', 'image/png')
             context: Additional context
             model_name: Optional override for the model to use
+            generate_diagram: Whether to request diagram generation in the prompt.
+            generate_image: Whether to request image generation in the prompt.
+            generate_audio: Whether to request audio generation in the prompt.
         
         Returns:
-            Dictionary with explanation text and usage stats
+            Dictionary with analysis text and usage stats
         
         Raises:
-            InvalidImageError: If image is invalid
             AIEngineException: If API call fails
         """
         try:
-            # Validate and load image
-            image_path_obj = Path(image_path)
-            if not image_path_obj.exists():
-                raise InvalidImageError(f"Image file not found: {image_path}")
-            
-            if image_path_obj.suffix.lower() not in {'.jpg', '.jpeg', '.png', '.gif', '.webp'}:
-                raise InvalidImageError(f"Unsupported image format: {image_path_obj.suffix}")
-            
             # Build prompt
-            prompt = build_image_analysis_prompt(question, context)
+            prompt = build_image_analysis_prompt(
+                question=question,
+                context=context,
+                generate_diagram=generate_diagram,
+                generate_image=generate_image,
+                generate_audio=generate_audio
+            )
+            validate_prompt(prompt)
             
             # Generate explanation using the migrated GeminiClient
-            logger.debug(f"Generating image explanation for: {image_path}")
+            logger.debug(f"Generating image analysis for question: {question[:50]}...")
             response_data = self.client.generate_content_with_image(
                 prompt=prompt, 
-                image_path=image_path, 
+                image_bytes=image_bytes,
+                mime_type=mime_type,
                 model_name=model_name
             )
             

@@ -83,11 +83,15 @@ async def shutdown_event():
 
 if __name__ == "__main__":
     import uvicorn
+    import os
 
-    logger.info("Starting ClarityLab AI Learning Agent API")
+    # Get port from environment variable for Cloud Run compatibility
+    port = int(os.environ.get("PORT", 8080))
+
+    logger.info(f"Starting ClarityLab AI Learning Agent API on port {port}")
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
+        port=port,
         log_level=settings.log_level.lower()
     )

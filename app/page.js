@@ -464,10 +464,23 @@ function AssistantBubble({ data, usage, voiceName }) {
       )}
 
       {/* Diagram Rendering */}
-      {data.diagram_code && data.diagram_type && (
+      {(data.diagram_code || data.diagrams) && (
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>🎨 Diagram</h3>
-          <DiagramRenderer type={data.diagram_type} code={data.diagram_code} />
+          {/* Support a single diagram (legacy shape) */}
+          {data.diagram_code && data.diagram_type && (
+            <DiagramRenderer type={data.diagram_type} code={data.diagram_code} />
+          )}
+          {/* Support richer multiple diagrams */}
+          {Array.isArray(data.diagrams) &&
+            data.diagrams.map((d, idx) =>
+              d?.code ? (
+                <div key={idx} className={styles.diagramGroup}>
+                  {d.title && <h4 className={styles.diagramSubtitle}>{toStr(d.title)}</h4>}
+                  <DiagramRenderer type={d.type || data.diagram_type || "mermaid"} code={d.code} />
+                </div>
+              ) : null
+            )}
         </div>
       )}
 

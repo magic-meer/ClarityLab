@@ -2,23 +2,23 @@ FROM python:3.11-slim AS backend
 
 WORKDIR /app
 
-# Install system deps
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy backend
-COPY ai_engine/ ./ai_engine/
-
-WORKDIR /app/ai_engine
-
+# Copy requirements and install dependencies
+COPY ai_engine/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-WORKDIR /app/ai_engine/app
+# Copy the actual application code
+# This copies everything from clarity-lab/ai_engine/app/ into /app
+COPY ai_engine/app/ .
 
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
 
 EXPOSE 8080
 
+# Start the application
 CMD ["python", "main.py"]
-

@@ -747,6 +747,165 @@
   gap: 4px;
 }
 
+/* ===== Markdown Content ===== */
+.markdownContent {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.markdownContent h1,
+.markdownContent h2,
+.markdownContent h3,
+.markdownContent h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.markdownContent h1 { font-size: 22px; }
+.markdownContent h2 { font-size: 18px; }
+.markdownContent h3 { font-size: 16px; }
+.markdownContent h4 { font-size: 15px; }
+
+.markdownContent p {
+  margin-bottom: 12px;
+}
+
+.markdownContent p:last-child {
+  margin-bottom: 0;
+}
+
+.markdownContent strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.markdownContent em {
+  font-style: italic;
+}
+
+.markdownContent a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.markdownContent a:hover {
+  text-decoration: underline;
+}
+
+.markdownContent ul,
+.markdownContent ol {
+  margin-bottom: 12px;
+  padding-left: 20px;
+}
+
+.markdownContent li {
+  margin-bottom: 4px;
+}
+
+.markdownContent li::marker {
+  color: var(--text-secondary);
+}
+
+.markdownContent blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 8px 16px;
+  margin: 12px 0;
+  background: var(--bg-sidebar);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: italic;
+}
+
+[data-theme="dark"] .markdownContent blockquote {
+  background: var(--bg-hover);
+}
+
+.markdownContent .inlineCode {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 13px;
+  background: var(--bg-sidebar);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .markdownContent .inlineCode {
+  background: var(--bg-hover);
+}
+
+.markdownContent pre {
+  background: #1e1e1e;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.markdownContent pre code {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 13px;
+  color: #d4d4d4;
+  background: transparent;
+  padding: 0;
+}
+
+.markdownContent code {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 13px;
+}
+
+.markdownContent hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+.markdownContent .tableWrapper {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.markdownContent table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.markdownContent th,
+.markdownContent td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.markdownContent th {
+  background: var(--bg-sidebar);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .markdownContent th {
+  background: var(--bg-hover);
+}
+
+.markdownContent img {
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  margin: 12px 0;
+}
+
+/* Katex Math */
+.markdownContent .katex {
+  font-size: 1.1em;
+}
+
+.markdownContent .katex-display {
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .sidebar {

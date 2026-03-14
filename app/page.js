@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import mermaid from "mermaid";
 import styles from "./page.module.css";
+import MarkdownRenderer from "./components/MarkdownRenderer";
 
 function toStr(value) {
   if (value == null) return "";
@@ -417,7 +418,7 @@ function AssistantBubble({ data, usage, voiceName }) {
       {/* Explanation or Analysis */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>📝 Explanation</h3>
-        <p className={styles.sectionBody}>{toStr(data.explanation || data.analysis || data)}</p>
+        <MarkdownRenderer content={toStr(data.explanation || data.analysis || data)} />
       </div>
 
       {/* Key points */}
@@ -427,7 +428,7 @@ function AssistantBubble({ data, usage, voiceName }) {
           <ul className={styles.keyPoints}>
             {data.key_points.map((pt, i) => (
               <li key={i} className={styles.keyPoint}>
-                {toStr(pt)}
+                <MarkdownRenderer content={toStr(pt)} />
               </li>
             ))}
           </ul>
@@ -466,7 +467,7 @@ function AssistantBubble({ data, usage, voiceName }) {
           <div className={styles.followUps}>
             {data.follow_up_questions.map((q, i) => (
               <div key={i} className={styles.followUpCard}>
-                {toStr(q)}
+                <MarkdownRenderer content={toStr(q)} />
               </div>
             ))}
           </div>
@@ -601,7 +602,7 @@ function NarrationPlayer({ text, voiceName }) {
       <h3 className={styles.sectionTitle}>🎙️ Narration</h3>
       <div className={styles.narrationWrapper}>
         <blockquote className={styles.narration}>
-          {text}
+          <MarkdownRenderer content={text} />
         </blockquote>
         <div className={styles.audioControls}>
           {loading && <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>⏳ Synthesizing audio...</span>}

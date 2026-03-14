@@ -63,6 +63,7 @@ JSON_FORMAT_TEMPLATE = """{
   "diagram_type": null,
   "diagram_code": null,
   "image_prompt": null,
+  "video_prompt": null,
   "narration_script": null,
   "follow_up_questions": []
 }"""
@@ -78,6 +79,7 @@ JSON Schema:
   "diagram_type": "string|null - 'mermaid' or 'svg' if a diagram would help",
   "diagram_code": "string|null - Raw Mermaid/SVG code (no markdown codeblocks)",
   "image_prompt": "string|null - Detailed prompt for image generation",
+  "video_prompt": "string|null - Detailed prompt for a short (8s) animated educational video",
   "narration_script": "string|null - 2-3 sentence spoken summary",
   "follow_up_questions": ["string", "string", ...]
 }
@@ -111,6 +113,7 @@ def build_explanation_prompt(
     generate_diagram: bool = True,
     generate_image: bool = True,
     generate_audio: bool = True,
+    generate_video: bool = True,
 ) -> str:
     """
     Build optimized prompt for generating an explanation on any topic.
@@ -122,6 +125,7 @@ def build_explanation_prompt(
         generate_diagram: Allow diagram generation
         generate_image: Allow image generation
         generate_audio: Allow audio generation
+        generate_video: Allow video generation
 
     Returns:
         Optimized prompt string
@@ -170,6 +174,19 @@ NARRATION: If a spoken summary would help, write 2-3 sentences that could be rea
         audio_instruction = """
 - narration_script: MUST be null (user disabled)"""
 
+    video_instruction = ""
+    if generate_video:
+        video_instruction = """
+VEO VIDEO PROMPT (IMPORTANT):
+- Construct a detailed prompt for an 8-second animated educational video.
+- STYLE: "Simplified Educational Animation". Think flat design, clean lines, moving diagrams, and animated 2D/3D conceptual models.
+- PROTECT: DO NOT use hyper-realistic styles, cinematic lighting, or heavy graphics. Use a clean "explainer video" aesthetic with a solid or simple abstract background.
+- FUNCTION: Show the dynamic working of the concept. Labels and arrows should move to show flow, interaction, or transformation.
+- Include explicit dialogue and sound effect cues in the prompt (e.g., A narrator says "...", We hear a soft hum as...) so Veo 3.1 can generate narration and SFX."""
+    else:
+        video_instruction = """
+- video_prompt: MUST be null (user disabled)"""
+
     prompt = f"""You are writing an educational chapter for a book. Your task is to explain the following concept in an engaging, narrative style that draws the reader in, develops ideas naturally, and concludes meaningfully.
 
 {difficulty_instruction}
@@ -181,6 +198,7 @@ NARRATION: If a spoken summary would help, write 2-3 sentences that could be rea
 {diagram_instruction}
 {image_instruction}
 {audio_instruction}
+{video_instruction}
 
 IMPORTANT RESTRICTIONS:
 1. Output ONLY valid JSON - no markdown code blocks, no explanatory text
@@ -211,6 +229,7 @@ def build_image_analysis_prompt(
     generate_diagram: bool = True,
     generate_image: bool = True,
     generate_audio: bool = True,
+    generate_video: bool = True,
 ) -> str:
     """
     Build prompt for analyzing uploaded images/diagrams.
@@ -233,7 +252,33 @@ def build_image_analysis_prompt(
         difficulty = "auto"
 
     difficulty_instruction = DIFFICULTY_INSTRUCTIONS.get(difficulty, "")
-    context_str = f"\nAdditional context: {context}" if context else ""
+    context_str = f"\\nAdditional context: {context}" if context else ""
+
+    diagram_instruction = ""
+    if generate_diagram:
+        diagram_instruction = """
+DIAGRAM GUIDELINES: Only include a diagram if visual representation of the image elements would help. Use Mermaid flowchart/graph syntax."""
+    else:
+        diagram_instruction = "- diagram_type: MUST be null"
+
+    image_instruction = ""
+    if generate_image:
+        image_instruction = "IMAGE PROMPT: Provide an illustrative prompt for a clarifying image if needed."
+    else:
+        image_instruction = "- image_prompt: MUST be null"
+
+    audio_instruction = ""
+    if generate_audio:
+        audio_instruction = "NARRATION: Provide a 2-3 sentence spoken summary of the analysis."
+    else:
+        audio_instruction = "- narration_script: MUST be null"
+
+    video_instruction = ""
+    if generate_video:
+        video_instruction = """
+VEO VIDEO PROMPT: Construct a prompt for an 8-second "Animated Diagram" showing the interaction of elements found in the image. Style: flat, clean, animated explainer. No heavy graphics or realism."""
+    else:
+        video_instruction = "- video_prompt: MUST be null"
 
     prompt = f"""You are analyzing an educational image/diagram and writing a chapter about it.
 
@@ -246,6 +291,11 @@ You are writing an educational chapter. Explain what the image shows, identify k
 {MARKDOWN_GUIDE}
 
 {context_str}
+
+{diagram_instruction}
+{image_instruction}
+{audio_instruction}
+{video_instruction}
 
 Question about the image: {question.strip()}
 
@@ -375,9 +425,28 @@ Output ONLY the narration script. No JSON, no code blocks."""
 def build_step_followup_prompt(question: str, explanation: str) -> str:
     """Step 6: Generate follow-up questions."""
     return f"""Suggest 2-3 thought-provoking follow-up questions to deepen understanding of: "{question.strip()}".
+ 
+ Based on this explanation:
+ {explanation[:500]}...
+ 
+ Output ONLY a JSON array of question strings like: ["question 1?", "question 2?"]
+ No code blocks, no explanations, just the JSON array."""
 
-Based on this explanation:
-{explanation[:500]}...
 
-Output ONLY a JSON array of question strings like: ["question 1?", "question 2?"]
-No code blocks, no explanations, just the JSON array."""
+def build_step_video_prompt(question: str, explanation: str) -> str:
+    """Step 7: Generate video generation prompt."""
+    return f"""Create a detailed, educational video prompt for the concept: "{question.strip()}".
+ 
+ STYLE REQUIREMENTS:
+ - The video must be an 8-second "Moving Diagram" or "Animated Explanation".
+ - Use a clean, flat-design or simple 3D conceptual style (like a premium educational explainer).
+ - AVOID realistic textures, cinematic lighting, or heavy/busy graphics. Focus on clarity over realism.
+ - Use moving labels, arrows, and flowing elements to demonstrate the concept's dynamic working.
+ 
+ Include explicit dialogue and sound effect cues in the prompt (e.g., A narrator says "...", We hear a soft hum as...) so Veo 3.1 can generate the narration and SFX.
+ 
+ Based on this explanation:
+ {explanation[:500]}...
+ 
+ Output ONLY a detailed video prompt description.
+ No JSON, no code blocks. Just the prompt text."""

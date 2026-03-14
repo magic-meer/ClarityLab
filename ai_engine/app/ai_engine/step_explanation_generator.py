@@ -14,6 +14,7 @@ from ai_engine.prompt_builder import (
     build_step_image_prompt,
     build_step_narration_prompt,
     build_step_followup_prompt,
+    build_step_video_prompt,
 )
 from ai_engine.gemini_client import get_gemini_client
 
@@ -54,6 +55,7 @@ class StepExplanationGenerator:
         generate_diagram: bool = True,
         generate_image: bool = True,
         generate_audio: bool = True,
+        generate_video: bool = True,
     ) -> Dict[str, Any]:
         """
         Generate a complete explanation using multi-step process.
@@ -64,7 +66,8 @@ class StepExplanationGenerator:
         3. Generate diagram (if enabled)
         4. Generate image prompt + image (if enabled)
         5. Generate narration (if enabled)
-        6. Generate follow-up questions
+        6. Generate video prompt + video (if enabled)
+        7. Generate follow-up questions
         """
         result = {
             "topic": question.strip(),
@@ -75,6 +78,8 @@ class StepExplanationGenerator:
             "diagram_code": None,
             "image_base64": None,
             "image_mime_type": None,
+            "video_base64": None,
+            "video_mime_type": None,
             "narration_script": None,
             "follow_up_questions": [],
             "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
@@ -158,25 +163,42 @@ class StepExplanationGenerator:
                 total_usage["completion_tokens"] += step5["usage"]["completion_tokens"]
                 total_usage["total_tokens"] += step5["usage"]["total_tokens"]
 
-        # Step 6: Generate follow-up questions
-        step6 = self.generate_step(
+        # Step 6: Generate video
+        if generate_video:
+            step6 = self.generate_step(
+                build_step_video_prompt(question, result["explanation"]), "video_prompt"
+            )
+            if step6["status"] == "success" and step6["text"].lower() != "null":
+                video_prompt = step6["text"]
+                try:
+                    video_result = self.client.generate_video(prompt=video_prompt)
+                    result["video_base64"] = video_result.get("video_base64")
+                    result["video_mime_type"] = video_result.get("mime_type")
+                except Exception as e:
+                    logger.error(f"Video generation failed: {e}")
+                total_usage["prompt_tokens"] += step6["usage"]["prompt_tokens"]
+                total_usage["completion_tokens"] += step6["usage"]["completion_tokens"]
+                total_usage["total_tokens"] += step6["usage"]["total_tokens"]
+
+        # Step 7: Generate follow-up questions
+        step7 = self.generate_step(
             build_step_followup_prompt(question, result["explanation"]), "follow_up"
         )
-        if step6["status"] == "success":
+        if step7["status"] == "success":
             try:
                 import json
 
-                questions = json.loads(step6["text"])
+                questions = json.loads(step7["text"])
                 if isinstance(questions, list):
                     result["follow_up_questions"] = questions
             except:
-                lines = [l.strip() for l in step6["text"].split("\n") if l.strip()]
+                lines = [l.strip() for l in step7["text"].split("\n") if l.strip()]
                 result["follow_up_questions"] = [
                     l for l in lines if l and not l.startswith("[")
                 ]
-            total_usage["prompt_tokens"] += step6["usage"]["prompt_tokens"]
-            total_usage["completion_tokens"] += step6["usage"]["completion_tokens"]
-            total_usage["total_tokens"] += step6["usage"]["total_tokens"]
+            total_usage["prompt_tokens"] += step7["usage"]["prompt_tokens"]
+            total_usage["completion_tokens"] += step7["usage"]["completion_tokens"]
+            total_usage["total_tokens"] += step7["usage"]["total_tokens"]
 
         result["usage"] = total_usage
         return {"status": "success", "data": result}
@@ -188,6 +210,7 @@ def generate_explanation_step(
     generate_diagram: bool = True,
     generate_image: bool = True,
     generate_audio: bool = True,
+    generate_video: bool = True,
 ) -> Dict[str, Any]:
     """Convenience function for step-based explanation."""
     generator = StepExplanationGenerator()
@@ -197,4 +220,5 @@ def generate_explanation_step(
         generate_diagram=generate_diagram,
         generate_image=generate_image,
         generate_audio=generate_audio,
+        generate_video=generate_video,
     )

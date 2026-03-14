@@ -4,16 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import mermaid from "mermaid";
 import styles from "./page.module.css";
 
-/**
- * Safety coercion: turns anything that isn't already a string into one.
- * Prevents the "Objects are not valid as a React child" crash when the
- * backend returns an object instead of a plain string for a text field.
- */
 function toStr(value) {
   if (value == null) return "";
   if (typeof value === "string") return value;
   if (typeof value === "object") {
-    // Try common prose keys first
     for (const key of ["description", "text", "content", "summary", "body", "value"]) {
       if (typeof value[key] === "string") return value[key];
     }
@@ -33,11 +27,28 @@ export default function Home() {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [theme, setTheme] = useState("light");
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Dynamic model lists from API — seeded with hardcoded defaults so
-  // the dropdowns are never empty while the fetch is in flight.
+  useEffect(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved) {
+      setTheme(saved);
+    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setTheme("dark");
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === "light" ? "dark" : "light");
+  };
+
   const [textModels, setTextModels] = useState([
     { name: "gemini-2.5-flash",      display_name: "Gemini 2.5 Flash" },
     { name: "gemini-2.0-flash",      display_name: "Gemini 2.0 Flash" },
@@ -56,8 +67,6 @@ export default function Home() {
     { name: "en-AU-Standard-A", display_name: "Standard (AU Female)" },
   ]);
 
-  // Fetch live model list in the background and update the dropdowns.
-  // Defaults above ensure the UI is never stuck on "Loading...".
   useEffect(() => {
     async function fetchModels() {
       try {
@@ -66,13 +75,11 @@ export default function Home() {
         if (data.status === "success") {
           if (data.text_models?.length)  setTextModels(data.text_models);
           if (data.audio_voices?.length) setAudioVoices(data.audio_voices);
-          // Keep selected value if it still exists in the new list, else pick first
           if (data.text_models?.length && !data.text_models.find(m => m.name === modelName)) {
             setModelName(data.text_models[0].name);
           }
         }
       } catch (err) {
-        // Defaults are already rendered — silently swallow the error.
         console.warn("Could not refresh model list from backend:", err);
       }
     }
@@ -98,7 +105,6 @@ export default function Home() {
       fileUrl = URL.createObjectURL(currentFile);
     }
 
-    // Add user message
     setConversations((prev) => [
       ...prev,
       { role: "user", content: userQ, fileUrl },
@@ -172,57 +178,63 @@ export default function Home() {
     <div className={styles.container}>
       {/* Sidebar */}
       <aside className={styles.sidebar}>
-        <div className={styles.brand}>
-          <div className={styles.brandIcon}>✦</div>
-          <h1 className={styles.brandName}>ClarityLab</h1>
+        <div className={styles.sidebarHeader}>
+          <div className={styles.brand}>
+            <div className={styles.brandIcon}>✦</div>
+            <h1 className={styles.brandName}>ClarityLab</h1>
+          </div>
+          <button className={styles.themeToggle} onClick={toggleTheme} title="Toggle theme">
+            {theme === "light" ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+            )}
+          </button>
         </div>
-        <p className={styles.brandTagline}>
-          AI-Powered Multimodal Learning Agent
-        </p>
 
         <div className={styles.sidebarSection}>
           <h3 className={styles.sidebarTitle}>Model Settings</h3>
-          <div className={styles.settingsSection}>
-            <div className={styles.settingsGroup}>
-              <label className={styles.settingsLabel}>Text Model</label>
-              <select className={styles.settingsSelect} value={modelName} onChange={(e) => setModelName(e.target.value)}>
-                {textModels.length > 0 ? textModels.map((m) => (
-                  <option key={m.name} value={m.name}>{m.display_name}</option>
-                )) : (
-                  <option value={modelName}>Loading...</option>
-                )}
-              </select>
-            </div>
-            <div className={styles.settingsGroup}>
-              <label className={styles.settingsLabel}>Audio Voice</label>
-              <select className={styles.settingsSelect} value={voiceName} onChange={(e) => setVoiceName(e.target.value)}>
-                {audioVoices.length > 0 ? audioVoices.map((v) => (
-                  <option key={v.name} value={v.name}>{v.display_name}</option>
-                )) : (
-                  <option value={voiceName}>Loading...</option>
-                )}
-              </select>
-            </div>
+          <div className={styles.settingsGroup}>
+            <label className={styles.settingsLabel}>Text Model</label>
+            <select className={styles.settingsSelect} value={modelName} onChange={(e) => setModelName(e.target.value)}>
+              {textModels.length > 0 ? textModels.map((m) => (
+                <option key={m.name} value={m.name}>{m.display_name}</option>
+              )) : (
+                <option value={modelName}>Loading...</option>
+              )}
+            </select>
+          </div>
+          <div className={styles.settingsGroup}>
+            <label className={styles.settingsLabel}>Audio Voice</label>
+            <select className={styles.settingsSelect} value={voiceName} onChange={(e) => setVoiceName(e.target.value)}>
+              {audioVoices.length > 0 ? audioVoices.map((v) => (
+                <option key={v.name} value={v.name}>{v.display_name}</option>
+              )) : (
+                <option value={voiceName}>Loading...</option>
+              )}
+            </select>
           </div>
         </div>
 
         <div className={styles.sidebarSection}>
           <h3 className={styles.sidebarTitle}>Features</h3>
-          <div className={styles.settingsSection}>
-            <div className={styles.settingsGroup}>
-              <label className={styles.settingsLabel}>
-                <input type="checkbox" checked={generateDiagram} onChange={(e) => setGenerateDiagram(e.target.checked)} /> 
-                Diagrams (Auto)
-              </label>
-              <label className={styles.settingsLabel}>
-                <input type="checkbox" checked={generateImage} onChange={(e) => setGenerateImage(e.target.checked)} /> 
-                Images (Auto)
-              </label>
-              <label className={styles.settingsLabel}>
-                <input type="checkbox" checked={generateAudio} onChange={(e) => setGenerateAudio(e.target.checked)} /> 
-                Audio (Auto)
-              </label>
-            </div>
+          <div className={styles.settingsGroup}>
+            <label className={styles.checkboxLabel}>
+              <input type="checkbox" checked={generateDiagram} onChange={(e) => setGenerateDiagram(e.target.checked)} /> 
+              Diagrams (Auto)
+            </label>
+            <label className={styles.checkboxLabel}>
+              <input type="checkbox" checked={generateImage} onChange={(e) => setGenerateImage(e.target.checked)} /> 
+              Images (Auto)
+            </label>
+            <label className={styles.checkboxLabel}>
+              <input type="checkbox" checked={generateAudio} onChange={(e) => setGenerateAudio(e.target.checked)} /> 
+              Audio (Auto)
+            </label>
           </div>
         </div>
 
@@ -343,7 +355,7 @@ export default function Home() {
               {loading ? (
                 <div className={styles.spinner} />
               ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               )}
             </button>
           </div>
@@ -516,7 +528,6 @@ function DiagramRenderer({ type, code }) {
         setError("Failed to initialize Mermaid diagram.");
       }
     } else if (type === "svg") {
-      // For raw SVG, safely inject it (in a real app, use DOMPurify to sanitize)
       if (containerRef.current) {
         containerRef.current.innerHTML = code;
       }
@@ -534,8 +545,7 @@ function DiagramRenderer({ type, code }) {
       ) : (
         <div 
           ref={containerRef} 
-          className={styles.diagramContainer} 
-          style={{ width: "100%", overflowX: "auto", background: "white", padding: "16px", borderRadius: "8px", border: "1px solid var(--border)" }}
+          className={styles.diagramContainer}
         />
       )}
     </div>
@@ -568,7 +578,6 @@ function NarrationPlayer({ text, voiceName }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Auto-synthesize on mount
   useEffect(() => {
     let cancelled = false;
     async function synthesize() {
@@ -608,7 +617,7 @@ function NarrationPlayer({ text, voiceName }) {
           {text}
         </blockquote>
         <div className={styles.audioControls}>
-          {loading && <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>⏳ Synthesizing audio...</span>}
+          {loading && <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>⏳ Synthesizing audio...</span>}
           {audioUrl && <audio src={audioUrl} controls autoPlay className={styles.audioPlayer} />}
           {error && <span className={styles.audioError}>{error}</span>}
         </div>

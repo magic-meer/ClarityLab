@@ -1,42 +1,60 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Core palette */
-  --bg-primary: #0a0b14;
-  --bg-secondary: #12131f;
-  --bg-card: #181a2a;
-  --bg-card-hover: #1e2035;
-  --bg-input: #1a1c2e;
+  /* Light theme (default) */
+  --bg-main: #FFFFFF;
+  --bg-sidebar: #F9F8F5;
+  --bg-input: #F1EFE8;
+  --bg-hover: #EFEDE6;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F5F4F0;
 
-  /* Accent */
-  --accent-primary: #7c5cfc;
-  --accent-secondary: #5b8def;
-  --accent-gradient: linear-gradient(135deg, #7c5cfc 0%, #5b8def 50%, #38c7b6 100%);
-  --accent-glow: 0 0 20px rgba(124, 92, 252, 0.3);
+  --border: #E3E1D9;
+  --border-focus: #BBBAB0;
 
-  /* Text */
-  --text-primary: #e8eaf0;
-  --text-secondary: #9a9cb8;
-  --text-muted: #5e607a;
-  --text-accent: #a78bfa;
+  --text-primary: #1A1A1A;
+  --text-secondary: #888780;
+  --text-hint: #AAAAAA;
+  --text-accent: #D85A30;
 
-  /* Borders */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-accent: rgba(124, 92, 252, 0.3);
+  --accent: #D85A30;
+  --accent-hover: #C44D28;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-pill: 999px;
+
+  --sidebar-width: 220px;
+  --transition: 0.2s ease;
+  --font: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Tags */
   --tag-beginner: #38c7b6;
   --tag-intermediate: #5b8def;
   --tag-advanced: #f59e0b;
   --tag-expert: #ef4444;
+}
 
-  /* Misc */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+[data-theme="dark"] {
+  --bg-main: #1A1A1A;
+  --bg-sidebar: #242424;
+  --bg-input: #2D2D2D;
+  --bg-hover: #383838;
+  --bg-card: #2A2A2A;
+  --bg-card-hover: #333333;
+
+  --border: #404040;
+  --border-focus: #555555;
+
+  --text-primary: #ECECEC;
+  --text-secondary: #A0A0A0;
+  --text-hint: #666666;
+  --text-accent: #E8764D;
+
+  --accent: #E8764D;
+  --accent-hover: #F08A60;
 }
 
 *, *::before, *::after {
@@ -49,7 +67,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   font-family: var(--font);
-  background: var(--bg-primary);
+  background: var(--bg-main);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -58,7 +76,7 @@ html, body {
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
 /* Skeleton loading animation */
@@ -84,8 +102,21 @@ html, body {
   animation: fadeInUp 0.5s var(--transition) forwards;
 }
 
-/* Pulse glow */
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 8px rgba(124, 92, 252, 0.15); }
-  50% { box-shadow: 0 0 20px rgba(124, 92, 252, 0.35); }
+/* Theme toggle button */
+.themeToggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.themeToggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }

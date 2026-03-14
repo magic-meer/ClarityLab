@@ -24,6 +24,7 @@ export default function Home() {
   const [generateDiagram, setGenerateDiagram] = useState(true);
   const [generateImage, setGenerateImage] = useState(true);
   const [generateAudio, setGenerateAudio] = useState(true);
+  const [difficulty, setDifficulty] = useState("auto");
   const [file, setFile] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -122,6 +123,7 @@ export default function Home() {
         formData.append("generate_diagram", generateDiagram);
         formData.append("generate_image", generateImage);
         formData.append("generate_audio", generateAudio);
+        formData.append("difficulty", difficulty);
 
         res = await fetch("/api/analyze", {
           method: "POST",
@@ -136,7 +138,8 @@ export default function Home() {
             model_name: modelName,
             generate_diagram: generateDiagram,
             generate_image: generateImage,
-            generate_audio: generateAudio
+            generate_audio: generateAudio,
+            difficulty: difficulty
           }),
         });
       }
@@ -218,6 +221,27 @@ export default function Home() {
                 <option value={voiceName}>Loading...</option>
               )}
             </select>
+          </div>
+        </div>
+
+        <div className={styles.sidebarSection}>
+          <h3 className={styles.sidebarTitle}>Difficulty Level</h3>
+          <div className={styles.difficultyGrid}>
+            {[
+              { value: "auto", label: "Auto" },
+              { value: "beginner", label: "Beginner" },
+              { value: "intermediate", label: "Intermediate" },
+              { value: "advanced", label: "Advanced" },
+              { value: "expert", label: "Expert" },
+            ].map((level) => (
+              <button
+                key={level.value}
+                className={`${styles.difficultyBtn} ${difficulty === level.value ? styles.difficultyActive : ""}`}
+                onClick={() => setDifficulty(level.value)}
+              >
+                {level.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -495,31 +519,42 @@ function AssistantBubble({ data, usage, voiceName }) {
 function DiagramRenderer({ type, code }) {
   const containerRef = useRef(null);
   const [error, setError] = useState(null);
+  const [svgContent, setSvgContent] = useState(null);
 
   useEffect(() => {
     if (!code) return;
+    
+    setError(null);
+    setSvgContent(null);
 
-    if (type === "mermaid") {
-      try {
-        mermaid.initialize({ startOnLoad: false, theme: "neutral" });
-        const renderId = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
-        mermaid.render(renderId, code).then(({ svg }) => {
-          if (containerRef.current) {
-            containerRef.current.innerHTML = svg;
-          }
-        }).catch(err => {
+    const renderDiagram = async () => {
+      if (type === "mermaid") {
+        try {
+          await mermaid.initialize({ 
+            startOnLoad: false, 
+            theme: "neutral",
+            securityLevel: "loose",
+            flowchart: { useMaxWidth: true, htmlLabels: true }
+          });
+          
+          const renderId = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const { svg } = await mermaid.render(renderId, code);
+          setSvgContent(svg);
+        } catch (err) {
           console.error("Mermaid parsing error:", err);
-          setError("Failed to render Mermaid diagram. The generated code might be invalid.");
-        });
-      } catch (err) {
-        console.error("Mermaid init/render error:", err);
-        setError("Failed to initialize Mermaid diagram.");
+          const errMsg = err.message || "Invalid Mermaid syntax";
+          setError(`Diagram code error: ${errMsg}. Check the generated code below.`);
+        }
+      } else if (type === "svg") {
+        try {
+          setSvgContent(code);
+        } catch (err) {
+          setError("Failed to render SVG diagram.");
+        }
       }
-    } else if (type === "svg") {
-      if (containerRef.current) {
-        containerRef.current.innerHTML = code;
-      }
-    }
+    };
+
+    renderDiagram();
   }, [type, code]);
 
   return (
@@ -528,13 +563,23 @@ function DiagramRenderer({ type, code }) {
         <div className={styles.errorBubble} style={{ marginTop: 0 }}>
           <span className={styles.errorIcon}>⚠</span>
           <p>{error}</p>
-          <pre style={{ fontSize: "11px", overflowX: "auto", marginTop: "8px" }}>{code}</pre>
+          <details style={{ marginTop: "8px" }}>
+            <summary style={{ cursor: "pointer", color: "var(--text-secondary)", fontSize: "12px" }}>
+              View diagram code
+            </summary>
+            <pre style={{ fontSize: "11px", overflowX: "auto", marginTop: "8px", textAlign: "left" }}>
+              {code}
+            </pre>
+          </details>
         </div>
-      ) : (
+      ) : svgContent ? (
         <div 
           ref={containerRef} 
           className={styles.diagramContainer}
+          dangerouslySetInnerHTML={{ __html: svgContent }}
         />
+      ) : (
+        <div className={styles.diagramContainer} ref={containerRef} />
       )}
     </div>
   );

@@ -132,6 +132,49 @@
   background: var(--bg-hover);
 }
 
+/* Difficulty Grid */
+.difficultyGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px 4px;
+}
+
+.difficultyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid #D4D2C8;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #444441;
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+[data-theme="dark"] .difficultyBtn {
+  border-color: #404040;
+  color: #CCCCCC;
+}
+
+.difficultyBtn:hover {
+  background: var(--bg-hover);
+}
+
+.difficultyActive {
+  background: var(--text-primary);
+  color: var(--bg-main);
+  border-color: var(--text-primary);
+}
+
+[data-theme="dark"] .difficultyActive {
+  background: var(--text-primary);
+  color: var(--bg-main);
+}
+
 .sidebarFooter {
   margin-top: auto;
   padding-top: 12px;
@@ -723,10 +766,18 @@
   padding: 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 [data-theme="dark"] .diagramContainer {
   background: #F5F5F5;
+}
+
+.diagramContainer svg {
+  max-width: 100%;
+  height: auto;
 }
 
 /* ===== Usage Stats ===== */

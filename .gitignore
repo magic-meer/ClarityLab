@@ -43,4 +43,4 @@ next-env.d.ts
 # python
 ai_engine/.venv
 ai_engine/__pycache__
-ai_engine/app/ai_engine/__pycache__/*
+ai_engine/app/ai_engine/__pycache__

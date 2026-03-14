@@ -63,6 +63,7 @@ JSON_FORMAT_TEMPLATE = """{
   "diagram_type": null,
   "diagram_code": null,
   "image_prompt": null,
+  "video_prompt": null,
   "narration_script": null,
   "follow_up_questions": []
 }"""
@@ -78,6 +79,7 @@ JSON Schema:
   "diagram_type": "string|null - 'mermaid' or 'svg' if a diagram would help",
   "diagram_code": "string|null - Raw Mermaid/SVG code (no markdown codeblocks)",
   "image_prompt": "string|null - Detailed prompt for image generation",
+  "video_prompt": "string|null - Detailed prompt for a short (8s) animated educational video",
   "narration_script": "string|null - 2-3 sentence spoken summary",
   "follow_up_questions": ["string", "string", ...]
 }
@@ -111,6 +113,7 @@ def build_explanation_prompt(
     generate_diagram: bool = True,
     generate_image: bool = True,
     generate_audio: bool = True,
+    generate_video: bool = True,
 ) -> str:
     """
     Build optimized prompt for generating an explanation on any topic.
@@ -122,6 +125,7 @@ def build_explanation_prompt(
         generate_diagram: Allow diagram generation
         generate_image: Allow image generation
         generate_audio: Allow audio generation
+        generate_video: Allow video generation
 
     Returns:
         Optimized prompt string
@@ -170,6 +174,18 @@ NARRATION: If a spoken summary would help, write 2-3 sentences that could be rea
         audio_instruction = """
 - narration_script: MUST be null (user disabled)"""
 
+    video_instruction = ""
+    if generate_video:
+        video_instruction = """
+VEO VIDEO PROMPT (IMPORTANT):
+- Construct a detailed prompt for an 8-second animated educational video.
+- The style should be "simple animated explanation" - think clean, moving diagrams or 2D/3D scientific animations rather than hyper-realistic cinema.
+- Include explicit dialogue and sound effect cues in the prompt (e.g., A narrator says "...", We hear a soft hum as...) so Veo 3.1 can generate the narration and SFX.
+- Focus on showing the dynamic part of the explanation."""
+    else:
+        video_instruction = """
+- video_prompt: MUST be null (user disabled)"""
+
     prompt = f"""You are writing an educational chapter for a book. Your task is to explain the following concept in an engaging, narrative style that draws the reader in, develops ideas naturally, and concludes meaningfully.
 
 {difficulty_instruction}
@@ -181,6 +197,7 @@ NARRATION: If a spoken summary would help, write 2-3 sentences that could be rea
 {diagram_instruction}
 {image_instruction}
 {audio_instruction}
+{video_instruction}
 
 IMPORTANT RESTRICTIONS:
 1. Output ONLY valid JSON - no markdown code blocks, no explanatory text
@@ -211,6 +228,7 @@ def build_image_analysis_prompt(
     generate_diagram: bool = True,
     generate_image: bool = True,
     generate_audio: bool = True,
+    generate_video: bool = True,
 ) -> str:
     """
     Build prompt for analyzing uploaded images/diagrams.
@@ -233,7 +251,7 @@ def build_image_analysis_prompt(
         difficulty = "auto"
 
     difficulty_instruction = DIFFICULTY_INSTRUCTIONS.get(difficulty, "")
-    context_str = f"\nAdditional context: {context}" if context else ""
+    context_str = f"\\nAdditional context: {context}" if context else ""
 
     prompt = f"""You are analyzing an educational image/diagram and writing a chapter about it.
 
@@ -375,9 +393,23 @@ Output ONLY the narration script. No JSON, no code blocks."""
 def build_step_followup_prompt(question: str, explanation: str) -> str:
     """Step 6: Generate follow-up questions."""
     return f"""Suggest 2-3 thought-provoking follow-up questions to deepen understanding of: "{question.strip()}".
+ 
+ Based on this explanation:
+ {explanation[:500]}...
+ 
+ Output ONLY a JSON array of question strings like: ["question 1?", "question 2?"]
+ No code blocks, no explanations, just the JSON array."""
 
-Based on this explanation:
-{explanation[:500]}...
 
-Output ONLY a JSON array of question strings like: ["question 1?", "question 2?"]
-No code blocks, no explanations, just the JSON array."""
+def build_step_video_prompt(question: str, explanation: str) -> str:
+    """Step 7: Generate video generation prompt."""
+    return f"""Create a detailed, educational video prompt for the concept: "{question.strip()}".
+ 
+ The video should be an 8-second animated explanation (moving diagrams or 2D/3D scientific animations).
+ Include explicit dialogue and sound effect cues in the prompt (e.g., A narrator says "...", We hear a soft hum as...) so Veo 3.1 can generate the narration and SFX.
+ 
+ Based on this explanation:
+ {explanation[:500]}...
+ 
+ Output ONLY a detailed video prompt description.
+ No JSON, no code blocks. Just the prompt text."""

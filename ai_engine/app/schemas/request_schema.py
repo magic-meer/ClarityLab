@@ -24,6 +24,7 @@ class ExplanationRequest(BaseModel):
     generate_audio: bool = Field(
         True, description="Whether to allow audio narration generation"
     )
+    generate_video: bool = Field(True, description="Whether to allow video generation")
 
     class Config:
         """Pydantic config."""
@@ -76,6 +77,7 @@ class ImageAnalysisRequest(BaseModel):
     generate_audio: bool = Field(
         True, description="Whether to allow audio narration generation"
     )
+    generate_video: bool = Field(True, description="Whether to allow video generation")
 
     class Config:
         """Pydantic config."""

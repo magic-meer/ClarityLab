@@ -24,6 +24,7 @@ class ResponseParser:
         "diagram_type",
         "diagram_code",
         "image_prompt",
+        "video_prompt",
         "narration_script",
     }
 

@@ -191,6 +191,7 @@ async def explain_concept(request: ExplanationRequest) -> dict:
             generate_diagram=request.generate_diagram,
             generate_image=request.generate_image,
             generate_audio=request.generate_audio,
+            generate_video=request.generate_video,
         )
 
         if result.get("status") != "success":
@@ -252,6 +253,7 @@ async def explain_concept_steps(request: ExplanationRequest) -> dict:
             generate_diagram=request.generate_diagram,
             generate_image=request.generate_image,
             generate_audio=request.generate_audio,
+            generate_video=request.generate_video,
         )
 
         if result.get("status") != "success":
@@ -352,6 +354,7 @@ async def analyze_image(
     generate_diagram: bool = Form(True, description="Whether to generate diagrams"),
     generate_image: bool = Form(True, description="Whether to generate images"),
     generate_audio: bool = Form(True, description="Whether to generate audio"),
+    generate_video: bool = Form(True, description="Whether to generate video"),
 ) -> dict:
     """
     Analyze an uploaded image or diagram.
@@ -380,7 +383,8 @@ async def analyze_image(
             logger.info(f"Analyzing image for question: {question[:50]}...")
             handler = MultiModalHandler()
             analysis_dict = handler.explain_image(
-                question, temp_path, context, model_name=model_name
+                question, temp_path, context, model_name=model_name,
+                generate_video=generate_video
             )
 
             logger.info("Image analysis completed")

@@ -24,6 +24,7 @@ export default function Home() {
   const [generateDiagram, setGenerateDiagram] = useState(true);
   const [generateImage, setGenerateImage] = useState(true);
   const [generateAudio, setGenerateAudio] = useState(true);
+  const [generateVideo, setGenerateVideo] = useState(true);
   const [difficulty, setDifficulty] = useState("auto");
   const [processingStep, setProcessingStep] = useState("idle");
   const [file, setFile] = useState(null);
@@ -142,6 +143,7 @@ export default function Home() {
             generate_diagram: generateDiagram,
             generate_image: generateImage,
             generate_audio: generateAudio,
+            generate_video: generateVideo,
             difficulty: difficulty
           }),
         });
@@ -263,6 +265,10 @@ export default function Home() {
             <label className={styles.checkboxLabel}>
               <input type="checkbox" checked={generateAudio} onChange={(e) => setGenerateAudio(e.target.checked)} /> 
               Audio (Auto)
+            </label>
+            <label className={styles.checkboxLabel}>
+              <input type="checkbox" checked={generateVideo} onChange={(e) => setGenerateVideo(e.target.checked)} /> 
+              Video (VEO)
             </label>
           </div>
         </div>
@@ -501,6 +507,20 @@ function AssistantBubble({ data, usage, voiceName }) {
         <NarrationPlayer text={data.narration_script} voiceName={voiceName} />
       )}
 
+      {/* Video Rendering */}
+      {data.video_base64 && (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>🎥 Generated Video (VEO)</h3>
+          <video 
+            src={`data:${data.video_mime_type || 'video/mp4'};base64,${data.video_base64}`} 
+            controls 
+            autoPlay 
+            loop 
+            style={{ width: "100%", borderRadius: "8px", border: "1px solid var(--border)" }} 
+          />
+        </div>
+      )}
+
       {/* Follow-up */}
       {data.follow_up_questions?.length > 0 && (
         <div className={styles.section}>
@@ -611,6 +631,7 @@ function LoadingSkeleton({ step = "generating" }) {
     diagram: "Creating diagram...",
     image: "Generating image...",
     narration: "Creating narration...",
+    video: "Generating animation video (VEO)...",
     questions: "Generating follow-up questions...",
     complete: "Finalizing..."
   };
@@ -621,6 +642,7 @@ function LoadingSkeleton({ step = "generating" }) {
     { key: "diagram", label: "Diagram" },
     { key: "image", label: "Image" },
     { key: "narration", label: "Narration" },
+    { key: "video", label: "Video" },
     { key: "questions", label: "Follow-ups" },
   ];
 

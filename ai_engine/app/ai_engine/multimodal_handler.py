@@ -24,7 +24,7 @@ class MultiModalHandler:
         self.client = get_gemini_client()
         logger.debug("MultiModalHandler initialized")
     
-    def analyze_image(
+    def explain_image(
         self,
         question: str,
         image_bytes: bytes,
@@ -33,7 +33,8 @@ class MultiModalHandler:
         model_name: Optional[str] = None,
         generate_diagram: bool = True,
         generate_image: bool = True,
-        generate_audio: bool = True
+        generate_audio: bool = True,
+        generate_video: bool = True
     ) -> Dict[str, Any]:
         """
         Analyze an image or diagram.
@@ -61,7 +62,8 @@ class MultiModalHandler:
                 context=context,
                 generate_diagram=generate_diagram,
                 generate_image=generate_image,
-                generate_audio=generate_audio
+                generate_audio=generate_audio,
+                generate_video=generate_video
             )
             validate_prompt(prompt)
             

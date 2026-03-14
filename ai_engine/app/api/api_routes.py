@@ -14,6 +14,7 @@ from google import genai
 from config.settings import get_settings
 
 from ai_engine.explanation_generator import ExplanationGenerator
+from ai_engine.step_explanation_generator import StepExplanationGenerator
 from ai_engine.multimodal_handler import MultiModalHandler
 from ai_engine.gemini_client import get_gemini_client
 from utils.exceptions import AIEngineException
@@ -200,6 +201,67 @@ async def explain_concept(request: ExplanationRequest) -> dict:
             )
 
         logger.info("Explanation generated successfully")
+        return {"status": "success", "data": result.get("data")}
+
+    except HTTPException:
+        raise
+    except AIEngineException as e:
+        logger.error(f"AI Engine error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process request",
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred",
+        )
+
+
+# ─── Step-by-Step Explain (Multi-Step) ────────────────────────────────────────
+
+
+@router.post(
+    "/explain/steps",
+    response_model=dict,
+    summary="Generate Explanation (Step-by-Step)",
+    description="Generate explanation using multi-step process for better reliability",
+)
+async def explain_concept_steps(request: ExplanationRequest) -> dict:
+    """Generate an explanation using step-by-step process for reliability."""
+    try:
+        logger.info(f"Processing step-by-step explanation: {request.question[:50]}...")
+
+        is_valid, error_msg = validate_request_input(request.question)
+        if not is_valid:
+            logger.warning(f"Validation failed: {error_msg}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid input: {error_msg}",
+            )
+
+        question = sanitize_question(request.question)
+
+        # Use StepExplanationGenerator for multi-step processing
+        generator = StepExplanationGenerator()
+
+        result = generator.generate_full_explanation(
+            question=question,
+            difficulty=request.difficulty or "auto",
+            generate_diagram=request.generate_diagram,
+            generate_image=request.generate_image,
+            generate_audio=request.generate_audio,
+        )
+
+        if result.get("status") != "success":
+            logger.error(f"Step-by-step generation failed: {result.get('error')}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get("error", "Failed to generate explanation"),
+            )
+
+        logger.info("Step-by-step explanation generated successfully")
         return {"status": "success", "data": result.get("data")}
 
     except HTTPException:

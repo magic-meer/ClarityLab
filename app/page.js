@@ -25,6 +25,7 @@ export default function Home() {
   const [generateImage, setGenerateImage] = useState(true);
   const [generateAudio, setGenerateAudio] = useState(true);
   const [difficulty, setDifficulty] = useState("auto");
+  const [processingStep, setProcessingStep] = useState("idle");
   const [file, setFile] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -112,6 +113,7 @@ export default function Home() {
       { role: "user", content: userQ, fileUrl },
     ]);
     setLoading(true);
+    setProcessingStep("thinking");
 
     try {
       let res;
@@ -130,7 +132,8 @@ export default function Home() {
           body: formData,
         });
       } else {
-        res = await fetch("/api/explain", {
+        setProcessingStep("generating");
+        res = await fetch("/api/explain/steps", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
@@ -174,6 +177,7 @@ export default function Home() {
       ]);
     } finally {
       setLoading(false);
+      setProcessingStep("idle");
       inputRef.current?.focus();
     }
   };
@@ -331,7 +335,7 @@ export default function Home() {
 
           {loading && (
             <div className={`${styles.message} ${styles.assistantMessage} fade-in-up`}>
-              <LoadingSkeleton />
+              <LoadingSkeleton step={processingStep} />
             </div>
           )}
 
@@ -585,22 +589,62 @@ function DiagramRenderer({ type, code }) {
   );
 }
 
-function LoadingSkeleton() {
+function LoadingSkeleton({ step = "generating" }) {
+  const stepLabels = {
+    idle: "Preparing...",
+    thinking: "Thinking...",
+    generating: "Generating explanation...",
+    keypoints: "Extracting key points...",
+    diagram: "Creating diagram...",
+    image: "Generating image...",
+    narration: "Creating narration...",
+    questions: "Generating follow-up questions...",
+    complete: "Finalizing..."
+  };
+
+  const steps = [
+    { key: "generating", label: "Explanation" },
+    { key: "keypoints", label: "Key Points" },
+    { key: "diagram", label: "Diagram" },
+    { key: "image", label: "Image" },
+    { key: "narration", label: "Narration" },
+    { key: "questions", label: "Follow-ups" },
+  ];
+
+  const currentIndex = steps.findIndex(s => s.key === step);
+  const progress = currentIndex >= 0 ? ((currentIndex + 1) / steps.length) * 100 : 5;
+
   return (
     <div className={styles.assistantBubble}>
       <div className={styles.topicHeader}>
         <span className={styles.assistantAvatar}>✦</span>
-        <div className={`skeleton ${styles.skeletonTitle}`} />
+        <div>
+          <div className={`skeleton ${styles.skeletonTitle}`} style={{ width: "180px" }} />
+          <span className={styles.processingLabel}>{stepLabels[step] || "Processing..."}</span>
+        </div>
       </div>
+      
+      <div className={styles.progressContainer}>
+        <div className={styles.progressBar}>
+          <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+        </div>
+        <div className={styles.stepsIndicator}>
+          {steps.map((s, i) => (
+            <span 
+              key={s.key} 
+              className={`${styles.stepDot} ${i <= currentIndex ? styles.stepComplete : ''} ${i === currentIndex ? styles.stepActive : ''}`}
+              title={s.label}
+            >
+              {i + 1}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className={styles.section}>
         <div className={`skeleton ${styles.skeletonLine}`} />
         <div className={`skeleton ${styles.skeletonLine}`} style={{ width: "85%" }} />
         <div className={`skeleton ${styles.skeletonLine}`} style={{ width: "60%" }} />
-      </div>
-      <div className={styles.section}>
-        <div className={`skeleton ${styles.skeletonLine}`} style={{ width: "40%" }} />
-        <div className={`skeleton ${styles.skeletonLine}`} />
-        <div className={`skeleton ${styles.skeletonLine}`} style={{ width: "75%" }} />
       </div>
     </div>
   );

@@ -56,13 +56,13 @@ class GeminiClient:
 
             logger.debug(f"Sending text generation request using model: {model}")
 
+            # Check if we should force JSON or use plain text
+            config = types.GenerateContentConfig(
+                temperature=0.7,
+            )
+
             response = self.client.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.7,
-                    response_mime_type="application/json",
-                ),
+                model=model, contents=prompt, config=config
             )
 
             result = {

@@ -276,3 +276,108 @@ def validate_prompt(prompt: str, min_length: int = 10) -> bool:
         raise InvalidPromptError(f"Prompt too short (min {min_length} characters)")
 
     return True
+
+
+# ===== Step-based prompts for multi-step processing =====
+
+
+def build_step_explanation_prompt(question: str, difficulty: str = "auto") -> str:
+    """Step 1: Generate the main explanation in markdown format."""
+    if difficulty not in DIFFICULTY_INSTRUCTIONS:
+        difficulty = "auto"
+
+    diff_instruction = DIFFICULTY_INSTRUCTIONS.get(
+        difficulty, DIFFICULTY_INSTRUCTIONS["auto"]
+    )
+
+    return f"""Write an educational explanation for the following topic.
+
+{diff_instruction}
+
+Topic: {question.strip()}
+
+Write in a narrative, book-like style:
+- Start with an engaging hook or introduction
+- Develop ideas in flowing paragraphs
+- Use headings (# ## ###) to organize sections
+- Use **bold** for key terms
+- Use *italic* for examples and emphasis
+- Use `code` for technical terms
+- Use $math$ for inline math, $$math$$ for block equations
+- Use bullet points sparingly, prefer flowing prose
+- End with a meaningful conclusion
+
+CRITICAL: Output plain text with markdown formatting. Do NOT output JSON. Do NOT use code blocks (no ```). Start your response directly with the explanation text."""
+
+
+def build_step_keypoints_prompt(
+    question: str, explanation: str, difficulty: str = "auto"
+) -> str:
+    """Step 2: Extract key learning points from the explanation."""
+    return f"""Extract 3-5 key learning points from the following explanation about "{question.strip()}".
+
+Explanation:
+{explanation}
+
+Output ONLY a JSON array of strings like: ["point 1", "point 2", "point 3"]
+No other text, no code blocks, just the JSON array."""
+
+
+def build_step_diagram_prompt(question: str, explanation: str) -> str:
+    """Step 3: Generate mermaid diagram code."""
+    return f"""Generate a Mermaid diagram that would help visualize the concept: "{question.strip()}".
+
+Based on this explanation:
+{explanation[:500]}...
+
+Output ONLY raw Mermaid diagram code (like: graph TD A --> B).
+NO markdown code blocks, NO ``` fences, NO explanations.
+Just the raw mermaid code.
+
+If a diagram would not help explain this topic, output: null"""
+
+
+def build_step_image_prompt(question: str, explanation: str) -> str:
+    """Step 4: Generate image generation prompt."""
+    return f"""Create a detailed, educational image prompt for the concept: "{question.strip()}".
+
+The image should help visualize and understand this concept:
+{explanation[:500]}...
+
+Output ONLY a detailed image prompt description.
+No JSON, no code blocks. Just the prompt text.
+If an image would not help, output: null"""
+
+
+def build_step_narration_prompt(
+    question: str, explanation: str, difficulty: str = "auto"
+) -> str:
+    """Step 5: Generate narration script."""
+    length_guide = {
+        "beginner": "2-3 sentences, very simple language",
+        "intermediate": "2-4 sentences, moderate complexity",
+        "advanced": "3-5 sentences, technical but clear",
+        "expert": "4-6 sentences, assume expertise",
+    }
+    guide = length_guide.get(difficulty, "3-4 sentences")
+
+    return f"""Write a spoken narration script summarizing: "{question.strip()}".
+
+Guidelines:
+- Length: {guide}
+- Write for text-to-speech (speak naturally when read aloud)
+- Focus on the core concept
+- No markdown, no formatting, just plain text
+
+Output ONLY the narration script. No JSON, no code blocks."""
+
+
+def build_step_followup_prompt(question: str, explanation: str) -> str:
+    """Step 6: Generate follow-up questions."""
+    return f"""Suggest 2-3 thought-provoking follow-up questions to deepen understanding of: "{question.strip()}".
+
+Based on this explanation:
+{explanation[:500]}...
+
+Output ONLY a JSON array of question strings like: ["question 1?", "question 2?"]
+No code blocks, no explanations, just the JSON array."""

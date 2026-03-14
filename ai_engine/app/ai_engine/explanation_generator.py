@@ -31,6 +31,7 @@ class ExplanationGenerator:
         generate_diagram: bool = True,
         generate_image: bool = True,
         generate_audio: bool = True,
+        generate_video: bool = True,
     ) -> Dict[str, Any]:
         """
         Generate a complete explanation.
@@ -38,6 +39,11 @@ class ExplanationGenerator:
         Args:
             question: Concept or question
             model_name: Optional override for the model to use
+            difficulty: Difficulty level
+            generate_diagram: Allow diagram generation
+            generate_image: Allow image generation
+            generate_audio: Allow audio generation
+            generate_video: Allow video generation
 
         Returns:
             Dictionary with structured explanation
@@ -61,6 +67,7 @@ class ExplanationGenerator:
                 generate_diagram=generate_diagram,
                 generate_image=generate_image,
                 generate_audio=generate_audio,
+                generate_video=generate_video,
             )
             validate_prompt(prompt)
 
@@ -101,6 +108,27 @@ class ExplanationGenerator:
                     parsed_response["image_base64"] = None
                     parsed_response["image_error"] = str(img_err)
 
+            # If a video_prompt was provided, generate the video
+            video_prompt = parsed_response.get("video_prompt")
+            if (
+                video_prompt
+                and str(video_prompt).strip()
+                and str(video_prompt).strip().lower() != "null"
+                and generate_video
+            ):
+                logger.debug(
+                    f"Video prompt detected, generating video: {video_prompt[:50]}..."
+                )
+                try:
+                    video_result = self.client.generate_video(prompt=video_prompt)
+                    parsed_response["video_base64"] = video_result.get("video_base64")
+                    parsed_response["video_mime_type"] = video_result.get("mime_type")
+                    logger.info("Video generated and attached to response")
+                except Exception as vid_err:
+                    logger.error(f"Failed to generate accompanying video: {vid_err}")
+                    parsed_response["video_base64"] = None
+                    parsed_response["video_error"] = str(vid_err)
+
             logger.info("Explanation generated successfully")
             return {"status": "success", "data": parsed_response}
 
@@ -139,6 +167,7 @@ class ExplanationGenerator:
         generate_diagram: bool = True,
         generate_image: bool = True,
         generate_audio: bool = True,
+        generate_video: bool = True,
     ) -> list[Dict[str, Any]]:
         """
         Generate explanations for multiple questions.
@@ -146,6 +175,10 @@ class ExplanationGenerator:
         Args:
             questions: List of questions
             model_name: Optional override for the model to use
+            generate_diagram: Allow diagram generation
+            generate_image: Allow image generation
+            generate_audio: Allow audio generation
+            generate_video: Allow video generation
 
         Returns:
             List of explanations
@@ -159,6 +192,7 @@ class ExplanationGenerator:
                 generate_diagram=generate_diagram,
                 generate_image=generate_image,
                 generate_audio=generate_audio,
+                generate_video=generate_video,
             )
             results.append(result)
 
@@ -176,6 +210,7 @@ def generate_explanation(
     generate_diagram: bool = True,
     generate_image: bool = True,
     generate_audio: bool = True,
+    generate_video: bool = True,
 ) -> Dict[str, Any]:
     """
     Generate an explanation (convenience function).
@@ -183,6 +218,10 @@ def generate_explanation(
     Args:
         question: Question
         model_name: Output model override
+        generate_diagram: Allow diagram generation
+        generate_image: Allow image generation
+        generate_audio: Allow audio generation
+        generate_video: Allow video generation
 
     Returns:
         Explanation result dictionary
@@ -194,6 +233,7 @@ def generate_explanation(
         generate_diagram=generate_diagram,
         generate_image=generate_image,
         generate_audio=generate_audio,
+        generate_video=generate_video,
     )
 
 

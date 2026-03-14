@@ -1,7 +1,7 @@
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { question, model_name, generate_diagram, generate_image, generate_audio, difficulty } = body;
+    const { question, model_name, generate_diagram, generate_image, generate_audio, generate_video, difficulty } = body;
 
     if (!question || question.trim().length < 5) {
       return Response.json(
@@ -21,6 +21,7 @@ export async function POST(request) {
     if (generate_diagram !== undefined) payload.generate_diagram = generate_diagram;
     if (generate_image !== undefined) payload.generate_image = generate_image;
     if (generate_audio !== undefined) payload.generate_audio = generate_audio;
+    if (generate_video !== undefined) payload.generate_video = generate_video;
 
     // Use step-by-step endpoint for better reliability
     const res = await fetch(`${backendUrl}/api/explain/steps`, {

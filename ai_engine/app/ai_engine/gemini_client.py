@@ -186,6 +186,62 @@ class GeminiClient:
             logger.error(f"Gemini API image generation error: {e}")
             raise GeminiAPIError(f"Image generation failed: {str(e)}")
 
+    def generate_video(
+        self, prompt: str, model_name: Optional[str] = "veo-3.1-generate-preview"
+    ) -> Dict[str, Any]:
+        """
+        Generate a video from a text prompt using Veo on Vertex AI.
+
+        Args:
+            prompt: Text prompt for the video.
+            model_name: Optional model override (defaults to veo-3.1-generate-preview).
+
+        Returns:
+            Dictionary containing 'video_base64' and 'mime_type'.
+        """
+        try:
+            logger.info(f"Sending video generation request using model: {model_name}")
+            import base64
+            import time
+
+            # Start the long-running operation
+            operation = self.client.models.generate_videos(
+                model=model_name,
+                prompt=prompt,
+                config=types.GenerateVideosConfig(
+                    aspect_ratio="16:9",
+                    number_of_videos=1,
+                    duration_seconds=8,  # 8s is standard for Veo
+                ),
+            )
+
+            # Poll until complete
+            logger.info(f"Waiting for video generation (Operation: {operation.name})...")
+            while not operation.done:
+                time.sleep(10)
+                operation = self.client.operations.get(operation)
+
+            response = operation.response
+            if not response or not response.generated_videos:
+                raise GeminiAPIError("No videos were generated.")
+
+            generated_video = response.generated_videos[0]
+            video_obj = generated_video.video
+
+            if hasattr(video_obj, "video_bytes") and video_obj.video_bytes:
+                # Convert bytes to base64 for frontend consumption
+                video_b64 = base64.b64encode(video_obj.video_bytes).decode("utf-8")
+                return {"video_base64": video_b64, "mime_type": "video/mp4"}
+            elif hasattr(video_obj, "uri") and video_obj.uri:
+                # Handle GCS URI if provided (though we expect bytes in Vertex AI mode)
+                return {"video_uri": video_obj.uri, "mime_type": "video/mp4"}
+            else:
+                raise GeminiAPIError("No video data found in response.")
+
+        except Exception as e:
+            logger.error(f"Gemini API video generation error: {e}")
+            raise GeminiAPIError(f"Video generation failed: {str(e)}")
+
 
 # Singleton instance
 _client: Optional[GeminiClient] = None

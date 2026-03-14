@@ -7,6 +7,7 @@ To allow GitHub Actions to deploy to your Google Cloud Project, you need to set 
 - Create a new account, e.g., `github-actions-deployer`.
 - Grant the following roles:
   - **Cloud Run Admin**
+  - **Artifact Registry Writer** (Essential for pushing images)
   - **Storage Admin** (for Artifact Registry/GCR)
   - **Service Account User**
   - **Cloud Build Editor**

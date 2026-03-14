@@ -1,10 +1,10 @@
-1. fix the text to speech generation
-2. fix model loading and selection
 3. add much richer diagram capabilities
 4. setup cloud run
 5. add dockerfile for easy Deployment
 6. enhance UI
 7. test multimodal Inputs
+8. change color palltete
+9. add ligh/dark mode support
 10. remove the default suggestion stuff.
 11. improve prompts
 12. update the response dispalying mechanisim to include richer to support of bold, heading and code stuff like markdown.

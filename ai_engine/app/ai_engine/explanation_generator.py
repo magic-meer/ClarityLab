@@ -6,11 +6,7 @@ Orchestrates prompt building, API calls, and response parsing.
 import logging
 from typing import Dict, Any, Optional
 from config.logger import setup_logger
-from utils.exceptions import (
-    AIEngineException,
-    InvalidPromptError,
-    ResponseParsingError
-)
+from utils.exceptions import AIEngineException, InvalidPromptError, ResponseParsingError
 from ai_engine.prompt_builder import build_explanation_prompt, validate_prompt
 from ai_engine.gemini_client import get_gemini_client
 from ai_engine.response_parser import ResponseParser
@@ -31,9 +27,10 @@ class ExplanationGenerator:
         self,
         question: str,
         model_name: Optional[str] = None,
+        difficulty: str = "auto",
         generate_diagram: bool = True,
         generate_image: bool = True,
-        generate_audio: bool = True
+        generate_audio: bool = True,
     ) -> Dict[str, Any]:
         """
         Generate a complete explanation.
@@ -60,9 +57,10 @@ class ExplanationGenerator:
             # Build optimized prompt (AI decides difficulty and outputs)
             prompt = build_explanation_prompt(
                 question=question,
+                difficulty=difficulty,
                 generate_diagram=generate_diagram,
                 generate_image=generate_image,
-                generate_audio=generate_audio
+                generate_audio=generate_audio,
             )
             validate_prompt(prompt)
 
@@ -70,18 +68,28 @@ class ExplanationGenerator:
             logger.debug("Sending request to Gemini API")
             response_data = self.client.generate_content(prompt, model_name=model_name)
 
+            # Log raw response for debugging
+            raw_text = response_data.get("text", "")
+            logger.info(f"Raw model response (first 500 chars): {raw_text[:500]}")
+
             # Parse and validate response
             logger.debug("Parsing response")
-            parsed_response = self.parser.parse_json_response(response_data["text"])
+            parsed_response = self.parser.parse_json_response(raw_text)
             self.parser.validate_explanation_response(parsed_response)
-            
+
             # Attach usage
             parsed_response["usage"] = response_data.get("usage", {})
 
             # If an image_prompt was provided and is not empty, generate the image
             image_prompt = parsed_response.get("image_prompt")
-            if image_prompt and str(image_prompt).strip() and str(image_prompt).strip().lower() != "null":
-                logger.debug(f"Image prompt detected, generating image: {image_prompt[:50]}...")
+            if (
+                image_prompt
+                and str(image_prompt).strip()
+                and str(image_prompt).strip().lower() != "null"
+            ):
+                logger.debug(
+                    f"Image prompt detected, generating image: {image_prompt[:50]}..."
+                )
                 try:
                     # You can pass a specific model_name if needed, or rely on default
                     image_result = self.client.generate_image(prompt=image_prompt)
@@ -94,25 +102,18 @@ class ExplanationGenerator:
                     parsed_response["image_error"] = str(img_err)
 
             logger.info("Explanation generated successfully")
-            return {
-                "status": "success",
-                "data": parsed_response
-            }
+            return {"status": "success", "data": parsed_response}
 
         except InvalidPromptError as e:
             logger.error(f"Invalid prompt: {e}")
-            return {
-                "status": "error",
-                "error": "Invalid input",
-                "message": str(e)
-            }
+            return {"status": "error", "error": "Invalid input", "message": str(e)}
 
         except ResponseParsingError as e:
             logger.error(f"Response parsing failed: {e}")
             return {
                 "status": "error",
                 "error": "Response parsing failed",
-                "message": str(e)
+                "message": str(e),
             }
 
         except AIEngineException as e:
@@ -120,7 +121,7 @@ class ExplanationGenerator:
             return {
                 "status": "error",
                 "error": "AI processing error",
-                "message": str(e)
+                "message": str(e),
             }
 
         except Exception as e:
@@ -128,7 +129,7 @@ class ExplanationGenerator:
             return {
                 "status": "error",
                 "error": "Unexpected error",
-                "message": "An unexpected error occurred"
+                "message": "An unexpected error occurred",
             }
 
     def generate_bulk_explanations(
@@ -137,7 +138,7 @@ class ExplanationGenerator:
         model_name: Optional[str] = None,
         generate_diagram: bool = True,
         generate_image: bool = True,
-        generate_audio: bool = True
+        generate_audio: bool = True,
     ) -> list[Dict[str, Any]]:
         """
         Generate explanations for multiple questions.
@@ -153,11 +154,11 @@ class ExplanationGenerator:
         for i, question in enumerate(questions, 1):
             logger.debug(f"Processing question {i}/{len(questions)}")
             result = self.generate_explanation(
-                question, 
+                question,
                 model_name=model_name,
                 generate_diagram=generate_diagram,
                 generate_image=generate_image,
-                generate_audio=generate_audio
+                generate_audio=generate_audio,
             )
             results.append(result)
 
@@ -174,7 +175,7 @@ def generate_explanation(
     model_name: Optional[str] = None,
     generate_diagram: bool = True,
     generate_image: bool = True,
-    generate_audio: bool = True
+    generate_audio: bool = True,
 ) -> Dict[str, Any]:
     """
     Generate an explanation (convenience function).
@@ -188,11 +189,11 @@ def generate_explanation(
     """
     generator = ExplanationGenerator()
     return generator.generate_explanation(
-        question, 
+        question,
         model_name=model_name,
         generate_diagram=generate_diagram,
         generate_image=generate_image,
-        generate_audio=generate_audio
+        generate_audio=generate_audio,
     )
 
 

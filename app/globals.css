@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import 'katex/dist/katex.min.css';
 
 :root {
   /* Light theme (default) */
@@ -105,18 +106,27 @@ html, body {
 /* Theme toggle button */
 .themeToggle {
   background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 8px;
+  border: none;
+  padding: 4px;
   cursor: pointer;
   color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 4px;
   transition: var(--transition);
 }
 
 .themeToggle:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.themeToggle svg {
+  opacity: 0.7;
+  transition: opacity var(--transition);
+}
+
+.themeToggle:hover svg {
+  opacity: 1;
 }

@@ -34,6 +34,11 @@ app.add_middleware(
 # Include routers
 app.include_router(router, prefix="/api")
 
+# Root endpoint (for Cloud Run health checks)
+@app.get("/")
+async def root():
+    return {"message": "ClarityLab AI Learning Agent API is running"}
+
 # Health check endpoint
 @app.get("/health", tags=["Health"])
 async def health_check() -> dict:

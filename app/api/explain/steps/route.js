@@ -10,8 +10,7 @@ export async function POST(request) {
       );
     }
 
-    const backendUrl =
-      process.env.BACKEND_URL || "http://localhost:8000";
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
 
     const payload = { 
       question,
@@ -22,7 +21,6 @@ export async function POST(request) {
     if (generate_image !== undefined) payload.generate_image = generate_image;
     if (generate_audio !== undefined) payload.generate_audio = generate_audio;
 
-    // Use step-by-step endpoint for better reliability
     const res = await fetch(`${backendUrl}/api/explain/steps`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

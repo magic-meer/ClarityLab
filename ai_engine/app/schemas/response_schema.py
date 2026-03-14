@@ -13,7 +13,7 @@ class ExplanationResponse(BaseModel):
     Represents a complete structured physics explanation with all components.
     """
     
-    topic: str = Field(..., description="The physics topic or concept explained")
+    topic: str = Field(..., description="The topic or concept explained")
     difficulty: str = Field(..., description="Difficulty level: beginner, intermediate, advanced, or expert")
     explanation: str = Field(..., description="The main explanation text")
     key_points: List[str] = Field(..., description="List of important concepts and learning points")

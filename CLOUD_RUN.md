@@ -8,70 +8,50 @@ The Next.js frontend can be run locally (or deployed separately, e.g. to Vercel)
 
 ### 1. Prerequisites
 
-- A Google Cloud project
+- A Google Cloud project (Target: `glachackathon2026`)
 - `gcloud` CLI installed and authenticated
 - Billing enabled in your project
 
 ```bash
 gcloud auth login
-gcloud config set project YOUR_GCP_PROJECT_ID
+gcloud config set project glachackathon2026
 ```
 
 ---
 
-### 2. Build and Push the Container
+### 2. Backend Deployment
 
-From the project root (`ClarityLab/`):
+Build and push the backend container:
 
 ```bash
-gcloud builds submit --tag gcr.io/YOUR_GCP_PROJECT_ID/claritylab-backend
+gcloud builds submit --tag gcr.io/glachackathon2026/claritylab-backend --dockerfile Dockerfile.backend .
 ```
 
----
-
-### 3. Deploy to Cloud Run
+Deploy to Cloud Run:
 
 ```bash
 gcloud run deploy claritylab-backend \
-  --image gcr.io/YOUR_GCP_PROJECT_ID/claritylab-backend \
+  --image gcr.io/glachackathon2026/claritylab-backend \
   --platform managed \
-  --region YOUR_REGION \
+  --region us-central1 \
   --allow-unauthenticated \
   --port 8000
 ```
 
-Note the **Cloud Run URL** from the output, e.g.:
+### 3. Environment Variables
 
-`https://claritylab-backend-xyz-uc.a.run.app`
-
----
-
-### 4. Configure Environment Variables
-
-In the Cloud Run **Service > Edit & Deploy** screen, set env vars:
+In the Cloud Run **Service > Edit & Deploy** screen, or via CLI, set:
 
 - `GEMINI_API_KEY`
-- `MODEL_NAME` (e.g. `gemini-2.5-flash`)
-- `DEBUG_MODE` (`false` in production)
+- `GCP_PROJECT_ID`
+- `GCP_LOCATION`
+- `DEBUG_MODE` (`false`)
 - `LOG_LEVEL` (`INFO`)
-
-Save and redeploy.
 
 ---
 
-### 5. Point the Frontend at Cloud Run
+### 4. CI/CD with GitHub Actions
 
-Update the frontend `.env.local`:
-
-```env
-BACKEND_URL=https://claritylab-backend-xyz-uc.a.run.app
-```
-
-Restart the Next.js dev server:
-
-```bash
-pnpm dev
-```
-
-Your local frontend will now proxy API calls (e.g. `/api/explain`, `/api/models`) to the Cloud Run backend.
+Automated deployments are configured in `.github/workflows/deploy-backend.yml`. 
+See [GITHUB_ACTIONS.md](./GITHUB_ACTIONS.md) for setup instructions.
 

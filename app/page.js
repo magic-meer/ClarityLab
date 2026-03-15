@@ -239,8 +239,8 @@ export default function Home() {
         </div>
       </header>
 
-      <main className={`${styles.main} ${!hasConversation ? styles.mainInitial : ""}`}>
-        <div className={styles.chatArea}>
+      <main className={styles.main}>
+        <div className={`${styles.layoutWrapper} ${!hasConversation ? styles.heroMode : styles.chatMode}`}>
           {!hasConversation && (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}><Icon name="spark" /></div>
@@ -256,73 +256,76 @@ export default function Home() {
             </div>
           )}
 
-          {conversations.map((msg, i) => (
-            <div key={i} className={`${styles.message} ${msg.role === "user" ? styles.userMessage : styles.assistantMessage} fade-in`}>
-              {msg.role === "user" ? (
-                <UserBubble content={msg.content} />
-              ) : msg.error ? (
-                <ErrorBubble message={msg.error} />
-              ) : (
-                <AssistantBubble data={msg} />
-              )}
-            </div>
-          ))}
-          
-          {statusMessage && <CircularProgress status={statusMessage} />}
-          <div ref={chatEndRef} />
-        </div>
-
-        <div className={`${styles.inputContainer} ${!hasConversation ? styles.inputCentered : ""}`}>
-          <form className={styles.inputArea} onSubmit={handleSubmit}>
-            <div className={styles.inputWrapper}>
-              <div className={styles.composerControls}>
-                <div className={styles.dropdown} ref={diffMenuRef}>
-                  <button type="button" className={styles.dropdownBtn} onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}>
-                    <Icon name="sliders" />
-                    <span>Difficulty: {difficulty}</span>
-                  </button>
-                  {showDifficultyMenu && (
-                    <div className={styles.dropdownMenu}>
-                      {['beginner', 'intermediate', 'advanced', 'expert', 'auto'].map(lvl => (
-                        <button key={lvl} type="button" onClick={() => { setDifficulty(lvl); setShowDifficultyMenu(false); }}>
-                          {lvl}
-                        </button>
-                      ))}
-                    </div>
+          {hasConversation && (
+            <div className={styles.chatArea}>
+              {conversations.map((msg, i) => (
+                <div key={i} className={`${styles.message} ${msg.role === "user" ? styles.userMessage : styles.assistantMessage} fade-in`}>
+                  {msg.role === "user" ? (
+                    <UserBubble content={msg.content} />
+                  ) : msg.error ? (
+                    <ErrorBubble message={msg.error} />
+                  ) : (
+                    <AssistantBubble data={msg} />
                   )}
                 </div>
+              ))}
+              {statusMessage && <CircularProgress status={statusMessage} />}
+              <div ref={chatEndRef} />
+            </div>
+          )}
 
-                <div className={styles.dropdown} ref={featMenuRef}>
-                  <button type="button" className={styles.dropdownBtn} onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}>
-                    <Icon name="grid" />
-                    <span>Assets</span>
+          <div className={`${styles.inputContainer} ${!hasConversation ? styles.inputHero : ""}`}>
+            <form className={styles.inputArea} onSubmit={handleSubmit}>
+              <div className={styles.inputWrapper}>
+                <div className={styles.composerControls}>
+                  <div className={styles.dropdown} ref={diffMenuRef}>
+                    <button type="button" className={styles.dropdownBtn} onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}>
+                      <Icon name="sliders" />
+                      <span>Difficulty: {difficulty}</span>
+                    </button>
+                    {showDifficultyMenu && (
+                      <div className={styles.dropdownMenu}>
+                        {['beginner', 'intermediate', 'advanced', 'expert', 'auto'].map(lvl => (
+                          <button key={lvl} type="button" onClick={() => { setDifficulty(lvl); setShowDifficultyMenu(false); }}>
+                            {lvl}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.dropdown} ref={featMenuRef}>
+                    <button type="button" className={styles.dropdownBtn} onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}>
+                      <Icon name="grid" />
+                      <span>Assets</span>
+                    </button>
+                    {showFeaturesMenu && (
+                      <div className={styles.dropdownMenu}>
+                        <AssetToggle label="Diagrams" value={generateDiagram} onChange={setGenerateDiagram} />
+                        <AssetToggle label="Images" value={generateImage} onChange={setGenerateImage} />
+                        <AssetToggle label="Video" value={generateVideo} onChange={setGenerateVideo} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.textInputRow}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    className={styles.input}
+                    placeholder="Explain..."
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    disabled={loading}
+                  />
+                  <button type="submit" className={styles.sendBtn} disabled={loading || !question.trim()}>
+                    {loading ? "..." : "→"}
                   </button>
-                  {showFeaturesMenu && (
-                    <div className={styles.dropdownMenu}>
-                      <AssetToggle label="Diagrams" value={generateDiagram} onChange={setGenerateDiagram} />
-                      <AssetToggle label="Images" value={generateImage} onChange={setGenerateImage} />
-                      <AssetToggle label="Video" value={generateVideo} onChange={setGenerateVideo} />
-                    </div>
-                  )}
                 </div>
               </div>
-
-              <div className={styles.textInputRow}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  className={styles.input}
-                  placeholder="Explain..."
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  disabled={loading}
-                />
-                <button type="submit" className={styles.sendBtn} disabled={loading || !question.trim()}>
-                  {loading ? "..." : "→"}
-                </button>
-              </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </main>
     </div>
@@ -515,44 +518,76 @@ function AssistantBubble({ data }) {
 }
 
 function DiagramRenderer({ code }) {
-  const [svg, setSvg] = useState(null);
+  const [svg, setSvg] = useState("");
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!code) return;
-    const render = async () => {
-      try {
-        const cleanCode = code.replace(/```mermaid\n?|```/g, "").trim();
-        
-        // Robust mermaid extraction: look for start keywords
-        const mermaidKeywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline)/i;
-        
-        let finalCode = cleanCode;
-        if (!mermaidKeywords.test(cleanCode)) {
-           // Try to find the block if there's leading text
-           const lines = cleanCode.split('\n');
-           const startIndex = lines.findIndex(line => mermaidKeywords.test(line.trim()));
-           if (startIndex !== -1) {
-             finalCode = lines.slice(startIndex).join('\n');
-           }
-        }
+    setError(false);
+    
+    const sanitizeMermaid = (raw) => {
+      // 1. Remove markers
+      let sanitized = raw.replace(/```mermaid\n?|```/g, "").trim();
+      
+      // 2. Ensure it starts with a valid keyword
+      const lines = sanitized.split('\n');
+      const keywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline)/i;
+      const startIndex = lines.findIndex(l => keywords.test(l.trim()));
+      if (startIndex !== -1) {
+        sanitized = lines.slice(startIndex).join('\n');
+      }
 
-        // If it's already an SVG, just set it
+      // 3. Fix unquoted labels with parentheses/brackets (common failure)
+      // This regex looks for node definitions like A(Text (More)) and tries to quote the inner part: A(["Text (More)"])
+      // It handles A[...], A(...), A((...)), A{...}
+      sanitized = sanitized.replace(/(\w+)(\[|\(|\{\{|\(\()([^\]\)\}]*[\(\)][^\]\)\}]*)(\]|\)|\}\}|\)\))/g, (match, id, open, content, close) => {
+        // If content already has quotes, leave it
+        if (content.trim().startsWith('"') && content.trim().endsWith('"')) return match;
+        // Escape quotes inside
+        const safeContent = content.replace(/"/g, "'");
+        return `${id}${open}"${safeContent}"${close}`;
+      });
+
+      return sanitized;
+    };
+
+    const render = async () => {
+      let finalCode = code;
+      try {
+        finalCode = sanitizeMermaid(code);
+        
         if (finalCode.includes('<svg') && finalCode.includes('</svg>')) {
           setSvg(finalCode);
           return;
         }
 
-        // Otherwise try to render as mermaid
-        const { svg } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, finalCode);
-        setSvg(svg);
+        const { svg: svgResult } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, finalCode);
+        setSvg(svgResult);
       } catch (e) { 
-        console.error("Diagram render error:", e);
-        // Fallback: If it looks like text but failed mermaid, maybe it's raw text?
-        // For now, just show the error in the console.
+        console.warn("Mermaid first attempt failed, trying aggressive sanitize:", e);
+        try {
+          // If it failed, maybe some basic characters are still breaking it
+          // Remove all remaining parentheses from labels if they aren't quoted
+          const aggressive = finalCode.replace(/\[(.*?)\]/g, (m, g) => `["${g.replace(/[()]/g, ' ')}"]`)
+                                      .replace(/\((.*?)\)/g, (m, g) => `("${g.replace(/[()]/g, ' ')}")`);
+          
+          const { svg: svg2 } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, aggressive);
+          setSvg(svg2);
+        } catch (e2) {
+          console.error("Diagram render error (all attempts):", e2);
+          setError(true);
+        }
       }
     };
     render();
   }, [code]);
 
-  return svg ? <div dangerouslySetInnerHTML={{ __html: svg }} /> : <div>Loading diagram...</div>;
+  if (error || (!svg && !code)) return null;
+
+  return (
+    <div 
+      className={styles.diagramWrapper}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
 }

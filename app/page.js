@@ -87,18 +87,17 @@ function AssetToggle({ label, value, onChange }) {
   const isAuto = value === "auto";
 
   return (
-    <div className={styles.assetToggleRow}>
-      <span>{label}</span>
-      <button
-        type="button"
-        className={`${styles.switchToggle} ${isAuto ? styles.switchOn : ""}`}
-        onClick={() => onChange(isAuto ? "off" : "auto")}
-        aria-label={`${label} set to ${isAuto ? "auto" : "off"}`}
-      >
-        <span className={styles.switchTrackLabel}>{isAuto ? "Auto" : "Off"}</span>
-        <span className={styles.switchKnob} />
-      </button>
-    </div>
+    <button
+      type="button"
+      className={`${styles.assetToggleRow} ${isAuto ? styles.assetToggleRowActive : ""}`}
+      onClick={() => onChange(isAuto ? "off" : "auto")}
+      aria-label={`Toggle ${label}`}
+    >
+      <span className={styles.toggleLabel}>{label}</span>
+      <div className={`${styles.checkbox} ${isAuto ? styles.checkboxChecked : ""}`}>
+        {isAuto && <span className={styles.checkIcon}>✓</span>}
+      </div>
+    </button>
   );
 }
 
@@ -170,9 +169,9 @@ export default function Home() {
     const userQ = question.trim();
     setQuestion("");
     setError(null);
+    setStatusMessage("Analyzing and planning...");
     setConversations(prev => [...prev, { role: "user", content: userQ }]);
     setLoading(true);
-    setStatusMessage("Analyzing and planning...");
 
     try {
       // Step 1: Reasoning Plan
@@ -240,13 +239,13 @@ export default function Home() {
         </div>
       </header>
 
-      <main className={styles.main}>
+      <main className={`${styles.main} ${!hasConversation ? styles.mainInitial : ""}`}>
         <div className={styles.chatArea}>
-          {conversations.length === 0 && (
+          {!hasConversation && (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}><Icon name="spark" /></div>
-              <h2>What's on your mind?</h2>
-              <p>Get deep, multimodal explanations with diagrams and video.</p>
+              <h1 className={styles.welcomeTitle}>What's on your mind?</h1>
+              <p className={styles.welcomeSubTitle}>Get deep, multimodal explanations with diagrams and video.</p>
               <div className={styles.suggestionsRow}>
                 {["Black holes", "Photosynthesis", "Neural networks", "Quantum bits"].map(s => (
                   <button key={s} className={styles.suggestionBtn} onClick={() => setQuestion(s)}>
@@ -273,7 +272,7 @@ export default function Home() {
           <div ref={chatEndRef} />
         </div>
 
-        <div className={styles.inputContainer}>
+        <div className={`${styles.inputContainer} ${!hasConversation ? styles.inputCentered : ""}`}>
           <form className={styles.inputArea} onSubmit={handleSubmit}>
             <div className={styles.inputWrapper}>
               <div className={styles.composerControls}>
@@ -524,14 +523,27 @@ function DiagramRenderer({ code }) {
       try {
         const cleanCode = code.replace(/```mermaid\n?|```/g, "").trim();
         
+        // Robust mermaid extraction: look for start keywords
+        const mermaidKeywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline)/i;
+        
+        let finalCode = cleanCode;
+        if (!mermaidKeywords.test(cleanCode)) {
+           // Try to find the block if there's leading text
+           const lines = cleanCode.split('\n');
+           const startIndex = lines.findIndex(line => mermaidKeywords.test(line.trim()));
+           if (startIndex !== -1) {
+             finalCode = lines.slice(startIndex).join('\n');
+           }
+        }
+
         // If it's already an SVG, just set it
-        if (cleanCode.includes('<svg') && cleanCode.includes('</svg>')) {
-          setSvg(cleanCode);
+        if (finalCode.includes('<svg') && finalCode.includes('</svg>')) {
+          setSvg(finalCode);
           return;
         }
 
         // Otherwise try to render as mermaid
-        const { svg } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, cleanCode);
+        const { svg } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, finalCode);
         setSvg(svg);
       } catch (e) { 
         console.error("Diagram render error:", e);

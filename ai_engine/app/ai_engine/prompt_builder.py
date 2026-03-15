@@ -178,12 +178,29 @@ NARRATION: If a spoken summary would help, write 2-3 sentences that could be rea
     video_instruction = ""
     if generate_video:
         video_instruction = """
-VEO VIDEO PROMPT (IMPORTANT):
-- Construct a detailed prompt for an 8-second animated educational video.
-- STYLE: "Simplified Educational Animation". Think flat design, clean lines, moving diagrams, and animated 2D/3D conceptual models.
-- PROTECT: DO NOT use hyper-realistic styles, cinematic lighting, or heavy graphics. Use a clean "explainer video" aesthetic with a solid or simple abstract background.
-- FUNCTION: Show the dynamic working of the concept. Labels and arrows should move to show flow, interaction, or transformation.
-- Include explicit dialogue and sound effect cues in the prompt (e.g., A narrator says "...", We hear a soft hum as...) so Veo 3.1 can generate narration and SFX."""
+VEO VIDEO PROMPT — 8 SECONDS HARD LIMIT:
+You are writing a prompt for an 8-second animated educational video. This is an absolute time constraint.
+
+PLANNING RULE — ONE IDEA ONLY:
+8 seconds can communicate exactly ONE visual idea. Do not try to show a full explanation. Instead, identify the single most visually compelling moment or mechanism of this concept — the "aha moment" — and build the entire 8 seconds around it.
+
+THREE-ACT STRUCTURE (stick to this timing):
+- Seconds 0–2 (Setup): Establish the scene. A clean, minimal environment appears. The subject or system is introduced at rest.
+- Seconds 2–6 (Core Action): The key mechanism, transformation, or interaction plays out. This is the main event — animate it with motion, flow, and labeled arrows.
+- Seconds 6–8 (Payoff): The result or insight lands. A key label or equation fades in. The animation holds on the final state.
+
+VISUAL STYLE:
+- Flat design, 2D or simple 3D. Clean white or soft-gradient background.
+- Primary colors for key elements. Animated arrows and labels to show flow or causality.
+- No photorealism. No cinematic lighting. No busy backgrounds.
+- Think: premium Khan Academy or 3Blue1Brown aesthetic.
+
+AUDIO CUES (include all three):
+- Narrator line: A single sentence of 12–18 words spoken during seconds 2–7. Write the exact line.
+- Sound effect: One or two subtle ambient or action sounds (e.g., "a soft electric hum as current flows", "a gentle whoosh as the arrow traces the path").
+- Musical tone: One adjective for the background music (e.g., "minimal and curious", "calm and precise").
+
+FORMAT YOUR PROMPT AS A SINGLE PARAGRAPH describing the full 8 seconds in continuous prose, including all timing cues, visual actions, the narrator's exact line, and sound design."""
     else:
         video_instruction = """
 - video_prompt: MUST be null (user disabled)"""
@@ -277,7 +294,28 @@ DIAGRAM GUIDELINES: Only include a diagram if visual representation of the image
     video_instruction = ""
     if generate_video:
         video_instruction = """
-VEO VIDEO PROMPT: Construct a prompt for an 8-second "Animated Diagram" showing the interaction of elements found in the image. Style: flat, clean, animated explainer. No heavy graphics or realism."""
+VEO VIDEO PROMPT — 8 SECONDS HARD LIMIT:
+You are writing a prompt for an 8-second animated educational video that brings the key element of this image to life.
+
+PLANNING RULE — ONE INTERACTION ONLY:
+Look at the image and identify the single most important relationship, flow, or mechanism it depicts. The entire 8 seconds will animate only that one thing. Do not attempt to recreate the full image — animate its core insight.
+
+THREE-ACT STRUCTURE (stick to this timing):
+- Seconds 0–2 (Setup): A simplified, flat-design version of the image's key element appears on a clean background. Labels fade in to name the components.
+- Seconds 2–6 (Core Action): The relationship or mechanism animates — arrows flow, elements interact, a transformation occurs. Motion makes the concept tangible.
+- Seconds 6–8 (Payoff): The animation settles. A short text overlay or equation reinforces the takeaway.
+
+VISUAL STYLE:
+- Flat 2D animation. Soft gradient or white background.
+- Match the color palette of the original image loosely for visual continuity.
+- Clean, labeled arrows. No photorealism or cinematic effects.
+
+AUDIO CUES (include all three):
+- Narrator line: A single sentence of 12–18 words, spoken during seconds 2–7. Write the exact line.
+- Sound effect: One subtle ambient or interaction sound.
+- Musical tone: One adjective for the background music.
+
+FORMAT YOUR PROMPT AS A SINGLE PARAGRAPH describing the full 8 seconds in continuous prose, including all timing cues, visual actions, the narrator's exact line, and sound design."""
     else:
         video_instruction = "- video_prompt: MUST be null"
 
@@ -438,18 +476,36 @@ def build_step_followup_prompt(question: str, explanation: str) -> str:
 
 def build_step_video_prompt(question: str, explanation: str) -> str:
     """Step 7: Generate video generation prompt."""
-    return f"""Create a detailed, educational video prompt for the concept: "{question.strip()}".
- 
- STYLE REQUIREMENTS:
- - The video must be an 8-second "Moving Diagram" or "Animated Explanation".
- - Use a clean, flat-design or simple 3D conceptual style (like a premium educational explainer).
- - AVOID realistic textures, cinematic lighting, or heavy/busy graphics. Focus on clarity over realism.
- - Use moving labels, arrows, and flowing elements to demonstrate the concept's dynamic working.
- 
- Include explicit dialogue and sound effect cues in the prompt (e.g., A narrator says "...", We hear a soft hum as...) so Veo 3.1 can generate the narration and SFX.
- 
- Based on this explanation:
- {explanation[:500]}...
- 
- Output ONLY a detailed video prompt description.
- No JSON, no code blocks. Just the prompt text."""
+    return f"""You are writing a prompt for an 8-second animated educational video about: "{question.strip()}".
+
+This is an absolute hard limit — 8 seconds. Your prompt must be engineered for this constraint.
+
+STEP 1 — IDENTIFY THE ONE VISUAL MOMENT:
+Read the explanation below and extract the single most visually compelling insight — the mechanism, transformation, or relationship that, if animated, would make the concept immediately click. Ignore everything else. The entire 8 seconds is devoted to this one moment.
+
+Explanation context:
+{explanation[:600]}...
+
+STEP 2 — APPLY THIS EXACT STRUCTURE:
+
+THREE-ACT TIMING:
+- Seconds 0–2 (Setup): A minimal, flat-design scene appears on a clean background. The key subject or system is introduced at rest. One or two labels fade in to name the components.
+- Seconds 2–6 (Core Action): The central mechanism animates. Arrows flow, elements transform, forces act, data moves — whatever is most true to the concept. This is the "aha moment". Animated labels or values reinforce what is happening in real time.
+- Seconds 6–8 (Payoff): Motion slows. The final state holds on screen. A short text overlay (one phrase or a key equation) fades in to crystallize the takeaway.
+
+VISUAL STYLE (non-negotiable):
+- Flat 2D animation with optional simple 3D shapes. Soft white or subtle gradient background.
+- Bold, primary accent colors for key elements. Clean sans-serif labels.
+- Smooth easing on all motion (ease-in-out). No abrupt cuts.
+- Absolutely NO photorealism, NO cinematic lighting, NO stock footage aesthetic.
+- Reference aesthetic: 3Blue1Brown, Kurzgesagt (minimal version), or Khan Academy explainer.
+
+AUDIO (include all three, be specific):
+- Narrator: Write the EXACT sentence (12–18 words) spoken aloud during seconds 2–7. It must complete the thought the animation is showing.
+- SFX: One or two specific ambient or interaction sounds that reinforce the visual action (e.g., "a soft electric hum that rises as voltage increases", "a crisp click each time a node connects").
+- Music: One phrase describing the background tone (e.g., "quiet and curious, single piano notes", "minimal electronic, calm and precise").
+
+OUTPUT FORMAT:
+Write a single, continuous paragraph in present tense that describes the full 8 seconds — what appears, what moves, what is heard, and what the narrator says. Do not use bullet points or section headers in your output. Do not include any JSON, code blocks, or meta-commentary. Output ONLY the video prompt paragraph.
+
+If this concept is entirely abstract and cannot be meaningfully visualized in 8 seconds, output: null"""

@@ -1,4 +1,13 @@
 /* ===== Global Layout ===== */
+:root {
+  --surface-radius-md: var(--radius-lg);
+  --surface-radius-pill: var(--radius-pill);
+  --surface-shadow-soft: 0 2px 12px color-mix(in srgb, var(--text-primary) 6%, transparent);
+  --surface-shadow-interactive: 0 4px 16px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  --surface-shadow-elevated: 0 8px 24px color-mix(in srgb, var(--text-primary) 15%, transparent);
+  --surface-transition: var(--transition);
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -523,6 +532,8 @@
   padding: 16px;
   transition: var(--surface-transition);
   max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--surface-radius-md);
 }
 
 .assetCard:hover {
@@ -793,7 +804,7 @@
 /* ===== Buttons ===== */
 .ttsBtn {
   align-self: flex-start;
-  padding: 8px 16px;
+  padding: 8px 20px;
   font-size: var(--text-sm);
   font-weight: 560;
   line-height: var(--leading-snug);
@@ -802,6 +813,11 @@
   align-items: center;
   gap: 8px;
   margin-top: 10px;
+  border-radius: var(--surface-radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  transition: all var(--transition);
 }
 
 .ttsBtn:hover:not(:disabled) {
@@ -815,6 +831,14 @@
   transform: translateY(0);
   opacity: 0.92;
 }
+
+.ttsBtnActive {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-card)) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
 
 /* ===== Animations ===== */
 .fade-in {
@@ -1093,3 +1117,20 @@
   width: 4rem;
   height: 4rem;
 }
+
+.diagramWrapper {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-card-hover);
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.diagramWrapper svg {
+  max-width: 100%;
+  height: auto;
+}
+

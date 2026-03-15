@@ -44,6 +44,7 @@ CONSTRAINTS:
 1. ONLY return the plan JSON.
 2. Prompts should be self-contained and descriptive.
 3. If user toggles are OFF for an asset, that prompt MUST be 'null'.
+4. VIDEO PROMPT: Explicitly state that the video is ONLY 8 SECONDS long. Focus on a single, clear visual concept or motion that effectively illustrates a key point within this tight timeframe.
 """
 
 class ReasoningGenerator:

@@ -144,16 +144,13 @@ def build_explanation_prompt(
     diagram_instruction = ""
     if generate_diagram:
         diagram_instruction = """
-DIAGRAM GUIDELINES (TECHNICAL):
-- THIS IS AN AUTOMATED APP. Your output will be directly parsed and rendered by Mermaid.js.
-- CRITICAL: Generate ONLY Mermaid flowchart code (graph TD or graph LR). 
-- COMPATIBILITY RULES:
-  1. Use ONLY square bracket nodes: ID["Label Text"]. Avoid ( ) or { }.
-  2. EVERY label MUST be enclosed in exactly one pair of double quotes: A["Text"].
-  3. No labels on arrows (e.g., A --> B). Do not use |Label|.
-  4. No comments (%%) or extra quotes anywhere.
-  5. OUTPUT ONLY THE RAW CODE. No markdown fences, no text.
-- If a diagram is not helpful, set diagram_type to null.
+DIAGRAM:
+- If a visual diagram would help, set diagram_type to "image" and provide a detailed IMAGE GENERATION PROMPT in diagram_code.
+- The prompt will be sent to an AI image generator (Imagen) to create a diagram image.
+- Your prompt MUST describe a clean, professional diagram/flowchart/infographic.
+- Style instructions to include: "Clean white background, flat design, professional infographic style, labeled boxes connected by arrows, no photorealism, no text errors, technical diagram aesthetic, high contrast, sharp lines."
+- Describe the nodes, labels, and connections clearly so the image generator creates a proper visual diagram.
+- If a diagram is not helpful, set diagram_type and diagram_code to null.
 """
     else:
         diagram_instruction = """
@@ -413,19 +410,22 @@ No other text, no code blocks, just the JSON array."""
 
 
 def build_step_diagram_prompt(question: str, explanation: str) -> str:
-    """Step 3: Generate mermaid diagram code."""
-    return f"""This is part of an AUTOMATED app. Generate a raw Mermaid flowchart for: "{question.strip()}".
-    
-    SYSTEM LOGIC:
-    - We use Mermaid.js flowchart (graph TD/LR).
-    - Parsing is strict: Nodes MUST be formatted as ID["Label"] (square brackets + double quotes).
-    - PARSING RULE: Do NOT use |label| on arrows. Do NOT use quotes or brackets inside labels.
-    - OUTPUT: Raw Mermaid code ONLY. No backticks, no markdown, no conversational filler.
-    
-    Explanation context:
-    {explanation[:500]}...
-    
-    Generate raw Mermaid code (or output 'null' if a diagram is not appropriate):"""
+    """Step 3: Generate an image prompt that describes a diagram."""
+    return f"""Create a detailed image generation prompt that describes a clean, professional diagram for this concept: "{question.strip()}".
+
+The image prompt you write will be sent to an AI image generator to create a visual diagram.
+
+Your output MUST describe:
+- A clean white background with a professional infographic/flowchart style
+- Labeled boxes or shapes connected by arrows showing relationships
+- Flat design, sharp lines, high contrast, no photorealism
+- The specific nodes, labels, and flow relevant to the concept
+- Think: textbook diagram or whiteboard sketch, but polished
+
+Context:
+{explanation[:500]}...
+
+Output ONLY the image prompt text. No JSON, no code. If a diagram would not help, output: null"""
 
 
 def build_step_image_prompt(question: str, explanation: str) -> str:

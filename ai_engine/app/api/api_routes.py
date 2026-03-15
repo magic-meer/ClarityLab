@@ -16,10 +16,11 @@ from config.settings import get_settings
 
 from ai_engine.explanation_generator import ExplanationGenerator
 from ai_engine.step_explanation_generator import StepExplanationGenerator
+from ai_engine.reasoning_generator import ReasoningGenerator
 from ai_engine.multimodal_handler import MultiModalHandler
 from ai_engine.gemini_client import get_gemini_client
 from utils.exceptions import AIEngineException
-from schemas.request_schema import ExplanationRequest, ImageGenerationRequest
+from schemas.request_schema import ExplanationRequest, ImageGenerationRequest, AssetGenerationRequest
 from utils.validators import validate_request_input, sanitize_question
 from config.logger import setup_logger
 
@@ -375,7 +376,7 @@ async def analyze_image(
                 detail=f"Unsupported file type: {file.content_type}",
             )
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png", mode="wb") as temp_file:
             contents = await file.read()
             temp_file.write(contents)
             temp_path = temp_file.name
@@ -456,6 +457,72 @@ async def generate_image(request: ImageGenerationRequest) -> dict:
         )
 
 
+@router.post(
+    "/plan",
+    response_model=dict,
+    summary="Generate Multimodal Plan",
+    description="Initial reasoning step to plan the multimodal response",
+)
+async def generate_plan(request: ExplanationRequest) -> dict:
+    """Generate a multimodal execution plan."""
+    try:
+        logger.info(f"Generating plan for: {request.question[:50]}...")
+        generator = ReasoningGenerator()
+        result = await generator.generate_plan(
+            question=request.question,
+            difficulty=request.difficulty or "auto",
+            generate_diagram=request.generate_diagram,
+            generate_image=request.generate_image,
+            generate_video=request.generate_video,
+            generate_audio=request.generate_audio,
+            model_name=request.model_name
+        )
+        if result.get("status") != "success":
+            raise HTTPException(status_code=500, detail=result.get("message"))
+        return result
+    except Exception as e:
+        logger.error(f"Plan generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate-video")
+async def generate_video(request: AssetGenerationRequest) -> dict:
+    """Generate a video from a prompt."""
+    try:
+        client = get_gemini_client()
+        result = await client.generate_video(prompt=request.prompt, model_name=request.model_name)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Video generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate-explanation")
+async def generate_text_explanation(request: AssetGenerationRequest) -> dict:
+    """Generate the main text explanation."""
+    try:
+        client = get_gemini_client()
+        # For text, we expect JSON-ish or Markdown from the specialized prompt
+        result = await client.generate_content(prompt=request.prompt, model_name=request.model_name)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Text generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/generate-diagram")
+async def generate_diagram(request: AssetGenerationRequest) -> dict:
+    """Generate a diagram (Mermaid/SVG)."""
+    try:
+        client = get_gemini_client()
+        result = await client.generate_content(prompt=request.prompt, model_name=request.model_name)
+        # We might need to parse the diagram code from the response or it might be raw
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Diagram generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ─── Endpoints Listing ───────────────────────────────────────────────────────
 
 
@@ -470,12 +537,13 @@ async def list_endpoints() -> dict:
         "status": "success",
         "endpoints": {
             "GET /api/models": "List available AI models and voices",
-            "POST /api/explain": "Generate a single explanation",
-            "POST /api/explain/bulk": "Generate multiple explanations",
-            "POST /api/analyze-image": "Analyze uploaded image/diagram",
+            "POST /api/plan": "Initial reasoning step to plan the multimodal response",
+            "POST /api/explain": "Generate a single explanation (legacy)",
             "POST /api/generate-image": "Generate image from text prompt",
+            "POST /api/generate-video": "Generate video from text prompt",
+            "POST /api/generate-explanation": "Generate text explanation from prompt",
+            "POST /api/generate-diagram": "Generate diagram from prompt",
             "GET /health": "Health check",
-            "GET /config": "Get configuration",
             "GET /api/endpoints": "List all endpoints",
         },
     }

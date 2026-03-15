@@ -127,7 +127,7 @@ class BulkExplanationRequest(BaseModel):
 class AssetGenerationRequest(BaseModel):
     """Request schema for granular asset generation (from plan prompts)."""
 
-    prompt: str = Field(..., description="Prompt for the specific asset")
+    prompt: str = Field(..., max_length=3000, description="Prompt for the specific asset")
     model_name: Optional[str] = Field(None, description="Model override")
 
     class Config:

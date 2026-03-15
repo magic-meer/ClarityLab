@@ -15,7 +15,7 @@ class QuestionValidator(BaseModel):
     """Validator for questions."""
     
     question: str
-    max_length: int = 1000
+    max_length: int = 5000
     
     @field_validator('question')
     @classmethod
@@ -24,8 +24,8 @@ class QuestionValidator(BaseModel):
         if not v or not v.strip():
             raise ValueError("Question cannot be empty")
         
-        if len(v) > 1000:
-            raise ValueError(f"Question too long (max 1000 characters, got {len(v)})")
+        if len(v) > 5000:
+            raise ValueError(f"Question too long (max 5000 characters, got {len(v)})")
         
         if len(v) < 5:
             raise ValueError("Question too short (min 5 characters)")

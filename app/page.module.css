@@ -249,6 +249,14 @@
   overflow: hidden;
   padding: 16px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  transition: all 0.3s ease;
+  max-width: 100%;
+}
+
+.assetCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+  border-color: var(--accent);
 }
 
 .assetCard h5 {
@@ -262,8 +270,15 @@
 
 .assetCard img {
   width: 100%;
-  height: auto;
+  max-height: 400px;
+  object-fit: cover;
   border-radius: 8px;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.assetCard:hover img {
+  transform: scale(1.02);
 }
 
 /* ===== Progress & Status ===== */
@@ -475,4 +490,76 @@
 @keyframes loading {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
+}
+
+/* ===== Modal ===== */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modalContent {
+  position: relative;
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: 20px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+}
+
+.closeModal {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.closeModal:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.modalDiagram {
+  width: 100%;
+}
+
+.modalDiagram svg {
+  width: 100% !important;
+  height: auto !important;
+}
+
+.expandable {
+  cursor: zoom-in;
+}
+
+/* Constrain SVGs in sidebar */
+.assetCard svg {
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 300px;
+  display: block;
 }

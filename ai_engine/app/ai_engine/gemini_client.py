@@ -14,6 +14,9 @@ from utils.exceptions import GeminiAPIError
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_IMAGE_MODEL = "publishers/google/models/imagen-3.0-generate-002"
+DEFAULT_VIDEO_MODEL = "publishers/google/models/veo-2.0-generate-001"
+
 
 class GeminiClient:
     """Wrapper for the Gemini API using google-genai SDK (Vertex AI backend)."""
@@ -28,9 +31,15 @@ class GeminiClient:
                 project=self.settings.gcp_project_id,
                 location=self.settings.gcp_location,
             )
+            # Sync client for long-running operations that might have buggy aio support
+            self.sync_client = genai.Client(
+                vertexai=True,
+                project=self.settings.gcp_project_id,
+                location=self.settings.gcp_location,
+            )
             self.default_model = self.settings.model_name
             logger.info(
-                f"Gemini client initialized for Vertex AI with model: {self.default_model}"
+                f"Gemini client initialized for Vertex AI with project: {self.settings.gcp_project_id}"
             )
         except Exception as e:
             logger.error(f"Failed to initialize Gemini client: {e}")
@@ -145,24 +154,19 @@ class GeminiClient:
             raise GeminiAPIError(f"Multimodal generation failed: {str(e)}")
 
     async def generate_image(
-        self, prompt: str, model_name: Optional[str] = "imagen-3.0-generate-001"
+        self, prompt: str, model_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generate an image from a text prompt.
-
-        Args:
-            prompt: Text prompt for the image.
-            model_name: Optional model override (defaults to imagen-3.0-generate-001).
-
-        Returns:
-            Dictionary containing 'image_base64' and 'mime_type'.
         """
+        model = model_name or DEFAULT_IMAGE_MODEL
         try:
-            logger.debug(f"Sending image generation request using model: {model_name}")
+            prompt_preview = str(prompt)[:50]
+            logger.info(f"Generating image (model: {model}) for: {prompt_preview}...")
             import base64
 
             result = await self.client.aio.models.generate_images(
-                model=model_name,
+                model=model,
                 prompt=prompt,
                 config=types.GenerateImagesConfig(
                     number_of_images=1,
@@ -188,42 +192,47 @@ class GeminiClient:
             raise GeminiAPIError(f"Image generation failed: {str(e)}")
 
     async def generate_video(
-        self, prompt: str, model_name: Optional[str] = "veo-3.1-generate-preview"
+        self, prompt: str, model_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Generate a video from a text prompt using Veo on Vertex AI.
-
-        Args:
-            prompt: Text prompt for the video.
-            model_name: Optional model override (defaults to veo-3.1-generate-preview).
-
-        Returns:
-            Dictionary containing 'video_base64' and 'mime_type'.
+        Uses synchronous operation in a thread to bypass suspected .aio endpoint issues.
         """
+        model = model_name or DEFAULT_VIDEO_MODEL
         try:
-            logger.info(f"Sending video generation request using model: {model_name}")
+            logger.info(f"Submitting video generation (Sync-Threaded) using model: {model}")
             import base64
             import asyncio
+            import time
 
-            # Start the long-running operation via aio
-            operation = await self.client.aio.models.generate_videos(
-                model=model_name,
-                prompt=prompt,
-                config=types.GenerateVideosConfig(
-                    aspect_ratio="16:9",
-                    number_of_videos=1,
-                    duration_seconds=8,  # 8s is standard for Veo
-                ),
-            )
+            def _generate():
+                # This uses the same logic as the working test script
+                operation = self.sync_client.models.generate_videos(
+                    model=model,
+                    prompt=prompt,
+                    config=types.GenerateVideosConfig(
+                        aspect_ratio="16:9",
+                        number_of_videos=1,
+                        duration_seconds=8,
+                        person_generation="dont_allow",
+                    ),
+                )
+                
+                logger.info(f"Video operation started: {operation.name}")
+                
+                # Poll synchronously within the thread
+                start_time = time.time()
+                while not operation.done:
+                    if time.time() - start_time > 600: # 10 min timeout
+                        raise TimeoutError("Video generation timed out")
+                    time.sleep(10)
+                    operation = self.sync_client.operations.get(operation)
+                
+                return operation.response
 
-            # Poll until complete
-            logger.info(f"Waiting for video generation (Operation: {operation.name})...")
-            while not operation.done:
-                # CRITICAL: Use asyncio.sleep to avoid blocking the event loop
-                await asyncio.sleep(5)
-                operation = await self.client.aio.operations.get(operation)
+            # Run the synchronous polling in a separate thread
+            response = await asyncio.to_thread(_generate)
 
-            response = operation.response
             if not response or not response.generated_videos:
                 raise GeminiAPIError("No videos were generated.")
 
@@ -231,17 +240,15 @@ class GeminiClient:
             video_obj = generated_video.video
 
             if hasattr(video_obj, "video_bytes") and video_obj.video_bytes:
-                # Convert bytes to base64 for frontend consumption
                 video_b64 = base64.b64encode(video_obj.video_bytes).decode("utf-8")
                 return {"video_base64": video_b64, "mime_type": "video/mp4"}
             elif hasattr(video_obj, "uri") and video_obj.uri:
-                # Handle GCS URI if provided (though we expect bytes in Vertex AI mode)
                 return {"video_uri": video_obj.uri, "mime_type": "video/mp4"}
             else:
                 raise GeminiAPIError("No video data found in response.")
 
         except Exception as e:
-            logger.error(f"Gemini API video generation error: {e}")
+            logger.error(f"Gemini API video generation error: {e}", exc_info=True)
             raise GeminiAPIError(f"Video generation failed: {str(e)}")
 
 

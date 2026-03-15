@@ -68,7 +68,7 @@ class MultiModalHandler:
             logger.error(f"Error processing image: {e}")
             raise AIEngineException(f"Image processing failed: {str(e)}")
     
-    def compare_images(
+    async def compare_images(
         self,
         question: str,
         image_paths: List[str],
@@ -76,18 +76,6 @@ class MultiModalHandler:
     ) -> Dict[str, Any]:
         """
         Compare multiple diagrams/images.
-        
-        Args:
-            question: Question about images
-            image_paths: List of image file paths
-            model_name: Optional override for the model to use
-        
-        Returns:
-            Dictionary with comparison analysis and usage stats
-        
-        Raises:
-            InvalidImageError: If images are invalid
-            AIEngineException: If API call fails
         """
         if not image_paths or len(image_paths) < 2:
             raise ValueError("At least 2 images required for comparison")
@@ -114,14 +102,12 @@ Provide a detailed analysis that:
 4. Discusses implications of the differences
 5. Suggests learning insights"""
             
-            # The new SDK is clean. We use our client's underlying sdk client for flexibility
-            # or we could extend the client to handle parts. Let's use the underlying client.
             logger.debug(f"Generating comparison for {len(images)} images")
             
             sdk_client = self.client.client
             model = model_name or self.client.default_model
             
-            response = sdk_client.models.generate_content(
+            response = await sdk_client.aio.models.generate_content(
                 model=model,
                 contents=images + [prompt]
             )

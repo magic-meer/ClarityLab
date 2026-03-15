@@ -61,8 +61,8 @@ class GeminiClient:
                 temperature=0.7,
             )
 
-            # Use await for the async call
-            response = await self.client.models.generate_content(
+            # Use await for the async call via the .aio property
+            response = await self.client.aio.models.generate_content(
                 model=model, contents=prompt, config=config
             )
 
@@ -116,7 +116,7 @@ class GeminiClient:
 
             logger.debug(f"Sending image analyze request using model: {model}")
 
-            response = await self.client.models.generate_content(
+            response = await self.client.aio.models.generate_content(
                 model=model,
                 contents=[img, prompt],
                 config=types.GenerateContentConfig(
@@ -161,7 +161,7 @@ class GeminiClient:
             logger.debug(f"Sending image generation request using model: {model_name}")
             import base64
 
-            result = await self.client.models.generate_images(
+            result = await self.client.aio.models.generate_images(
                 model=model_name,
                 prompt=prompt,
                 config=types.GenerateImagesConfig(
@@ -205,8 +205,8 @@ class GeminiClient:
             import base64
             import asyncio
 
-            # Start the long-running operation
-            operation = await self.client.models.generate_videos(
+            # Start the long-running operation via aio
+            operation = await self.client.aio.models.generate_videos(
                 model=model_name,
                 prompt=prompt,
                 config=types.GenerateVideosConfig(
@@ -221,7 +221,7 @@ class GeminiClient:
             while not operation.done:
                 # CRITICAL: Use asyncio.sleep to avoid blocking the event loop
                 await asyncio.sleep(5)
-                operation = await self.client.operations.get(operation)
+                operation = await self.client.aio.operations.get(operation)
 
             response = operation.response
             if not response or not response.generated_videos:

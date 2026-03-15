@@ -15,7 +15,8 @@ from utils.exceptions import GeminiAPIError
 logger = logging.getLogger(__name__)
 
 DEFAULT_IMAGE_MODEL = "publishers/google/models/imagen-3.0-generate-002"
-DEFAULT_VIDEO_MODEL = "publishers/google/models/veo-2.0-generate-001"
+DEFAULT_DIAGRAM_IMAGE_MODEL = "publishers/google/models/imagen-4.0-ultra-generate-001"
+DEFAULT_VIDEO_MODEL = "publishers/google/models/veo-3.1-generate-001"
 
 
 class GeminiClient:

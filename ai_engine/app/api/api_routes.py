@@ -513,14 +513,14 @@ async def generate_text_explanation(request: AssetGenerationRequest) -> dict:
 
 @router.post("/generate-diagram")
 async def generate_diagram(request: AssetGenerationRequest) -> dict:
-    """Generate a diagram (Mermaid/SVG)."""
+    """Generate a diagram as an image using Imagen 4 Ultra."""
     try:
+        from ai_engine.gemini_client import DEFAULT_DIAGRAM_IMAGE_MODEL
         client = get_gemini_client()
-        result = await client.generate_content(prompt=request.prompt, model_name=request.model_name)
-        # We might need to parse the diagram code from the response or it might be raw
+        result = await client.generate_image(prompt=request.prompt, model_name=DEFAULT_DIAGRAM_IMAGE_MODEL)
         return {"status": "success", "data": result}
     except Exception as e:
-        logger.error(f"Diagram generation failed: {e}")
+        logger.error(f"Diagram image generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

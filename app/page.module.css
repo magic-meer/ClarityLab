@@ -1,11 +1,38 @@
 /* ===== Global Layout ===== */
 .container {
+  --surface-radius-sm: var(--radius-md);
+  --surface-radius-md: var(--radius-lg);
+  --surface-radius-pill: var(--radius-pill);
+  --surface-shadow-soft: 0 1px 2px color-mix(in srgb, var(--text-primary) 9%, transparent), 0 10px 24px color-mix(in srgb, var(--text-primary) 6%, transparent);
+  --surface-shadow-elevated: 0 4px 10px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 16px 32px color-mix(in srgb, var(--text-primary) 8%, transparent);
+  --surface-shadow-interactive: 0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 8px 16px color-mix(in srgb, var(--text-primary) 7%, transparent);
+  --surface-transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.24s ease, transform 0.18s ease, opacity 0.18s ease;
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: var(--bg-main);
   font-family: var(--font);
   color: var(--text-primary);
+}
+
+/* ===== Shared Surface Primitives ===== */
+.userBubble,
+.assetCard,
+.dropdownMenu {
+  background: var(--bg-card);
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--surface-shadow-soft);
+}
+
+.dropdownBtn,
+.suggestionBtn,
+.ttsBtn {
+  background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-main));
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  border-radius: var(--surface-radius-pill);
+  box-shadow: var(--surface-shadow-interactive);
+  transition: var(--surface-transition);
 }
 
 .header {
@@ -160,21 +187,23 @@
 }
 
 .suggestionBtn {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
   padding: 10px 20px;
-  border-radius: 20px;
   cursor: pointer;
-  transition: all 0.2s;
   font-size: var(--text-sm);
   font-weight: 560;
   line-height: var(--leading-snug);
 }
 
 .suggestionBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--bg-hover) 88%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+  box-shadow: var(--surface-shadow-elevated);
+  transform: translateY(-1px);
+}
+
+.suggestionBtn:active {
+  transform: translateY(0);
+  opacity: 0.92;
 }
 
 /* ===== Messages ===== */
@@ -190,12 +219,10 @@
 }
 
 .userBubble {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
   padding: 12px 20px;
-  border-radius: 18px 18px 4px 18px;
+  border-radius: var(--surface-radius-md);
   max-width: 80%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-top-right-radius: var(--surface-radius-sm);
 }
 
 .userBubble p {
@@ -499,20 +526,16 @@
 }
 
 .assetCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
   overflow: hidden;
   padding: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-  transition: all 0.3s ease;
+  transition: var(--surface-transition);
   max-width: 100%;
 }
 
 .assetCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
-  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--surface-shadow-elevated);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
 }
 
 .assetCard h5 {
@@ -613,10 +636,7 @@
 }
 
 .dropdownBtn {
-  background: color-mix(in srgb, var(--bg-main) 48%, var(--bg-card));
-  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
   padding: 8px 13px;
-  border-radius: 999px;
   font-size: var(--text-sm);
   font-weight: 560;
   cursor: pointer;
@@ -625,24 +645,27 @@
   gap: 8px;
   color: var(--text-primary);
   line-height: var(--leading-tight);
-  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .dropdownBtn:hover {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
   background: color-mix(in srgb, var(--accent) 14%, var(--bg-card));
+  box-shadow: var(--surface-shadow-elevated);
+  transform: translateY(-1px);
+}
+
+.dropdownBtn:active {
+  opacity: 0.94;
+  transform: translateY(0);
 }
 
 .dropdownMenu {
   position: absolute;
   bottom: calc(100% + 10px);
   left: 0;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
   padding: 8px;
   min-width: 180px;
-  box-shadow: 0 14px 32px color-mix(in srgb, var(--text-primary) 16%, transparent);
+  box-shadow: var(--surface-shadow-elevated);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -706,35 +729,35 @@
 .sendBtn {
   width: 48px;
   height: 48px;
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 94%, var(--bg-card));
   color: white;
-  border: none;
-  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--surface-shadow-interactive);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: var(--text-lg);
-  transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  transition: var(--surface-transition);
 }
 
 .sendBtn:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.02);
+  transform: translateY(-1px);
   background: var(--accent-hover);
+  box-shadow: var(--surface-shadow-elevated);
 }
 
 .sendBtn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ===== Buttons ===== */
 .ttsBtn {
   align-self: flex-start;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
   padding: 8px 16px;
-  border-radius: 8px;
   font-size: var(--text-sm);
   font-weight: 560;
   line-height: var(--leading-snug);
@@ -743,12 +766,18 @@
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  transition: all 0.2s;
 }
 
 .ttsBtn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--accent);
+  background: color-mix(in srgb, var(--bg-hover) 82%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+  box-shadow: var(--surface-shadow-elevated);
+  transform: translateY(-1px);
+}
+
+.ttsBtn:active:not(:disabled) {
+  transform: translateY(0);
+  opacity: 0.92;
 }
 
 /* ===== Animations ===== */
@@ -873,7 +902,6 @@
   .sendBtn {
     width: 44px;
     height: 44px;
-    border-radius: 14px;
   }
 }
 

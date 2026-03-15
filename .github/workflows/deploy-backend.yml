@@ -47,4 +47,3 @@ jobs:
           --platform managed \
           --region ${{ env.REGION }} \
           --allow-unauthenticated
-P

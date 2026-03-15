@@ -21,6 +21,22 @@ function toStr(value) {
 }
 
 /**
+ * Strips markdown syntax to make text cleaner for TTS.
+ */
+function stripMarkdown(text) {
+  if (!text) return "";
+  return text
+    .replace(/#+\s+/g, "") // Headers
+    .replace(/\*\*/g, "")  // Bold
+    .replace(/\*/g, "")    // Italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Links
+    .replace(/`{1,3}[^`]*`{1,3}/g, "") // Code blocks
+    .replace(/[-*+]\s+/g, "") // List items
+    .replace(/\n+/g, " "); // Newlines to spaces
+}
+
+
+/**
  * Circular progress indicator that shows current step status.
  */
 function CircularProgress({ status }) {
@@ -130,12 +146,21 @@ export default function Home() {
   // Theme management
   useEffect(() => {
     const saved = localStorage.getItem("theme");
-    setTheme(saved || "light");
+    if (saved) {
+      setTheme(saved);
+    } else {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setTheme(prefersDark ? "dark" : "light");
+    }
   }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
+    // Explicitly check if user has manually set a theme before saving
+    // This allows us to potentially clear localStorage later to go back to system sync
+    if (localStorage.getItem("theme") || theme !== "light") {
+       localStorage.setItem("theme", theme);
+    }
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === "light" ? "dark" : "light");
@@ -354,6 +379,7 @@ function AssistantBubble({ data }) {
   const [image, setImage] = useState(null);
   const [video, setVideo] = useState(null);
   const [followups, setFollowups] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const prompts = data.prompts;
 
   const [loading, setLoading] = useState({
@@ -425,8 +451,22 @@ function AssistantBubble({ data }) {
   }, [prompts]);
 
   const speak = () => {
-    const text = toStr(explanation);
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const text = stripMarkdown(toStr(explanation));
+    if (!text) return;
+
+    window.speechSynthesis.cancel(); // Clear queue
     const utterance = new SpeechSynthesisUtterance(text);
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
     window.speechSynthesis.speak(utterance);
   };
 
@@ -472,8 +512,8 @@ function AssistantBubble({ data }) {
             </section>
           )}
 
-          <button className={styles.ttsBtn} onClick={speak} disabled={!explanation}>
-            <Icon name="volume" /> Read Aloud
+          <button className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""}`} onClick={speak} disabled={!explanation}>
+            <Icon name={isSpeaking ? "moon" : "volume"} /> {isSpeaking ? "Stop Reading" : "Read Aloud"}
           </button>
         </div>
 
@@ -538,28 +578,29 @@ function DiagramRenderer({ code }) {
       }
 
       const isFlowchart = /^(graph|flowchart)\b/i.test(sanitized.trim());
-
-      // 3. Fix unquoted labels ONLY for flowcharts
-      // For other types like stateDiagram, our sanitization often breaks things
       if (!isFlowchart) return sanitized;
 
+      // 3. Fix unquoted labels and strip trailing noise line-by-line
       const processedLines = sanitized.split('\n').map(line => {
-        const trimmedLine = line.trim();
-        // Skip lines that start with keywords or are already structured
-        if (/^(state|class|subgraph|end|note|style|direction|title|accTitle|accDescr|x-axis|y-axis|line|bar|tickInterval|data|min|max)\b/i.test(trimmedLine)) {
+        let l = line.trim();
+        if (!l || /^(state|class|subgraph|end|note|style|direction|title|accTitle|accDescr|x-axis|y-axis|line|bar|tickInterval|data|min|max)\b/i.test(l)) {
           return line;
         }
 
-        // Identify node definitions: A[...] or A(...) etc.
-        return line.replace(/(\w+)(\[|\(|\{\{|\(\()([^\]\)\}]*)(\]|\)|\}\}|\)\))/g, (match, id, open, content, close) => {
-          let trimmed = content.trim();
-          if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-            const inner = trimmed.substring(1, trimmed.length - 1).replace(/"/g, "'");
-            return `${id}${open}"${inner}"${close}`;
-          }
-          const safeContent = trimmed.replace(/"/g, "'");
-          return `${id}${open}"${safeContent}"${close}`;
+        // Segment-based normalization: split by connection markers (arrows + optional labels)
+        const connRegex = /(\s*(?:-->|---|--|==>|-.->|--\x3E)(?:\|[^|]+\|)?\s*|\s*--\s+"[^"]+"\s*(?:-->|---|--|==>|-.->|--\x3E)\s*)/;
+        const segments = l.split(connRegex); 
+        const normalized = segments.map(seg => {
+            if (!seg || connRegex.test(seg)) return seg;
+            
+            // Normalize node: ID["Label"] or just ID
+            return seg.replace(/(\w+)(?:\[|\(|\{\{|\(\()(.*?)(?:\]|\)|\}\}|\)\))/g, (m, id, label) => {
+                const cleanLabel = label.replace(/[()\[\]{}'"]/g, " ").trim();
+                return `${id}["${cleanLabel}"]`;
+            });
         });
+
+        return normalized.join('').replace(/%%.*$/, "").trim();
       });
 
       return processedLines.join('\n');
@@ -580,18 +621,22 @@ function DiagramRenderer({ code }) {
       } catch (e) { 
         console.warn("Mermaid first attempt failed, trying aggressive sanitize:", e);
         try {
-          // Aggressive fallback: ONLY for flowcharts. mangling chart data is fatal.
           const isFlow = /^(graph|flowchart)\b/i.test(finalCode.trim());
           if (!isFlow) throw e;
 
-          // Strip all existing quotes and then wrap properly to avoid [""Text""]
-          const aggressive = finalCode.replace(/\[(.*?)\]/g, (m, g) => {
-            const clean = g.replace(/["']/g, "").replace(/[()]/g, " ");
-            return `["${clean}"]`;
-          }).replace(/\((.*?)\)/g, (m, g) => {
-            const clean = g.replace(/["']/g, "").replace(/[()]/g, " ");
-            return `("${clean}")`;
-          });
+          // Strip ALL illegal structural chars and normalize to standard nodes
+          const aggressive = finalCode.split('\n').map(line => {
+             let l = line.trim();
+             if (/^(graph|flowchart|subgraph|end|direction|style)\b/i.test(l)) return line;
+             
+             // Strip all () and {} from labels and convert to [""]
+             // Ensure we don't double-wrap or leave artifacts
+             return l.replace(/(\w+)(?:\[|\(|\{\{|\(\()?(.*?)(?:\]|\)|\}\}|\)\))?/g, (m, id, content) => {
+                if (!content) return m; // Not a node definition
+                const clean = content.replace(/[()\[\]{}'"]/g, " ").trim();
+                return `${id}["${clean}"]`;
+             });
+          }).join('\n');
           
           const { svg: svg2 } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, aggressive);
           setSvg(svg2);

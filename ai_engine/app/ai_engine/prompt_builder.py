@@ -147,14 +147,14 @@ def build_explanation_prompt(
 DIAGRAM GUIDELINES (IMPORTANT):
 - Only include a diagram if visual representation would genuinely help understanding.
 - CRITICAL: Use ONLY Mermaid FLOWCHART syntax (graph TD or graph LR).
-- VALID FLOWCHART EXAMPLES:
-  - Good: A["Step 1"] --> B["Step 2"]
-  - Good: C{"Decision?"} --> D["Yes"]
+- VALID FLOWCHART EXAMPLE: A["Step 1"] --> B["Step 2"]
 - CRITICAL RULES (syntax is very strict):
   1. EVERY label MUST be in double quotes exactly ONCE: A["Label Text"]
-  2. NEVER use any quotes (single or double) INSIDE a label.
-  3. NEVER use parentheses () or brackets [] inside labels.
-  4. Keep labels short (1-4 words).
+  2. Use ONLY square brackets [ ] for all nodes. Example: A["Text"]. Avoid ( ) or { }.
+  3. NEVER use labels on arrows (e.g., NO A -->|label| B). Use a node for descriptions.
+  4. NEVER use any quotes (single or double) UNLESS it is the surrounding pair.
+  5. NEVER use parentheses (), brackets [], or comments %% anywhere.
+  6. Keep labels short (1-4 words).
 - If a complex chart or graph is needed, use SVG instead of Mermaid or set diagram_type to null.
 """
     else:

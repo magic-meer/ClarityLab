@@ -527,7 +527,7 @@ function DiagramRenderer({ code }) {
     const sanitizeMermaid = (raw) => {
       // 1. Remove markers and normalize redundant quotes
       let sanitized = raw.replace(/```mermaid\n?|```/g, "").trim();
-      sanitized = sanitized.replace(/""+/g, '"'); // Fix doubled quotes like ""Label""
+      sanitized = sanitized.replace(/""+/g, '"'); 
 
       // 2. Ensure it starts with a valid keyword
       const lines = sanitized.split('\n');
@@ -538,20 +538,27 @@ function DiagramRenderer({ code }) {
       }
 
       // 3. Fix unquoted labels or malformed ones
-      // This regex identifies node definitions and ensures content is quoted correctly
-      sanitized = sanitized.replace(/(\w+)(\[|\(|\{\{|\(\()([^\]\)\}]*)(\]|\)|\}\}|\)\))/g, (match, id, open, content, close) => {
-        let trimmed = content.trim();
-        // If it's already properly quoted, leave it (but normalize inner quotes)
-        if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-          const inner = trimmed.substring(1, trimmed.length - 1).replace(/"/g, "'");
-          return `${id}${open}"${inner}"${close}`;
+      // We process line by line to avoid mangling keywords
+      const processedLines = sanitized.split('\n').map(line => {
+        const trimmedLine = line.trim();
+        // Skip lines that start with keywords or are already structured (e.g., state, class, subgraph)
+        if (/^(state|class|subgraph|end|note|style|direction|title|accTitle|accDescr)\b/i.test(trimmedLine)) {
+          return line;
         }
-        // Otherwise wrap it and escape inner quotes
-        const safeContent = trimmed.replace(/"/g, "'");
-        return `${id}${open}"${safeContent}"${close}`;
+
+        // Identify node definitions: A[...] or A(...) etc.
+        return line.replace(/(\w+)(\[|\(|\{\{|\(\()([^\]\)\}]*)(\]|\)|\}\}|\)\))/g, (match, id, open, content, close) => {
+          let trimmed = content.trim();
+          if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+            const inner = trimmed.substring(1, trimmed.length - 1).replace(/"/g, "'");
+            return `${id}${open}"${inner}"${close}`;
+          }
+          const safeContent = trimmed.replace(/"/g, "'");
+          return `${id}${open}"${safeContent}"${close}`;
+        });
       });
 
-      return sanitized;
+      return processedLines.join('\n');
     };
 
     const render = async () => {

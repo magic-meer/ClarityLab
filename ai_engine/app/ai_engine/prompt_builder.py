@@ -146,13 +146,16 @@ def build_explanation_prompt(
         diagram_instruction = """
 DIAGRAM GUIDELINES (IMPORTANT):
 - Only include a diagram if visual representation would genuinely help understanding
-- For Mermaid diagrams, use ONLY valid syntax:
-  - Flowcharts: graph TD/LR, node shapes (A[Rectangle], B(Rounded), C(Diamond))
-  - Use --> for arrows, --- for lines
-  - CRITICAL: EVERY label MUST be in double quotes: A["Label Text"]
-  - CRITICAL: NO nested parentheses in labels unless using double quotes. Even then, avoid () if possible. Use [] or dashes.
-  - Subgraphs: subgraph name...end (NOT endsubgraph)
-- If unsure about syntax, set diagram_type to null
+- Use Mermaid FLOWCHART (graph TD or graph LR) for maximum compatibility.
+- VALID SYNTAX EXAMPLES:
+  - Good: A["Step 1"] --> B["Step 2"]
+  - Good: C{"Decision?"} --> D["Yes"]
+  - BAD (Do not use): A(Step (1))  <-- Nested parentheses break things.
+- CRITICAL RULES:
+  1. EVERY label MUST be in double quotes exactly ONCE: A["Label Text"]
+  2. NEVER use parentheses () inside labels. Use dashes or brackets if needed.
+  3. Keep labels short and simple.
+- If unsure about syntax, set diagram_type to null.
 """
     else:
         diagram_instruction = """
@@ -381,8 +384,8 @@ Based on this explanation:
 {explanation[:500]}...
 
 Output ONLY raw Mermaid diagram code (like: graph TD A["Start"] --> B["End"]).
-CRITICAL: Every label MUST be in double quotes (e.g., A["My Label"]).
-CRITICAL: Do not use parentheses () inside labels as they break Mermaid syntax. Use dashes or brackets instead.
+CRITICAL: Every label MUST be in double quotes exactly once (e.g., A["My Label"]).
+CRITICAL: DO NOT use parentheses () or brackets [] inside labels as they break Mermaid syntax.
 NO markdown code blocks, NO ``` fences, NO explanations.
 Just the raw mermaid code.
 If a diagram would not help explain this topic, output: null

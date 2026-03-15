@@ -524,11 +524,11 @@ function DiagramRenderer({ code }) {
   useEffect(() => {
     if (!code) return;
     setError(false);
-    
     const sanitizeMermaid = (raw) => {
-      // 1. Remove markers
+      // 1. Remove markers and normalize redundant quotes
       let sanitized = raw.replace(/```mermaid\n?|```/g, "").trim();
-      
+      sanitized = sanitized.replace(/""+/g, '"'); // Fix doubled quotes like ""Label""
+
       // 2. Ensure it starts with a valid keyword
       const lines = sanitized.split('\n');
       const keywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline)/i;
@@ -537,14 +537,17 @@ function DiagramRenderer({ code }) {
         sanitized = lines.slice(startIndex).join('\n');
       }
 
-      // 3. Fix unquoted labels with parentheses/brackets (common failure)
-      // This regex looks for node definitions like A(Text (More)) and tries to quote the inner part: A(["Text (More)"])
-      // It handles A[...], A(...), A((...)), A{...}
-      sanitized = sanitized.replace(/(\w+)(\[|\(|\{\{|\(\()([^\]\)\}]*[\(\)][^\]\)\}]*)(\]|\)|\}\}|\)\))/g, (match, id, open, content, close) => {
-        // If content already has quotes, leave it
-        if (content.trim().startsWith('"') && content.trim().endsWith('"')) return match;
-        // Escape quotes inside
-        const safeContent = content.replace(/"/g, "'");
+      // 3. Fix unquoted labels or malformed ones
+      // This regex identifies node definitions and ensures content is quoted correctly
+      sanitized = sanitized.replace(/(\w+)(\[|\(|\{\{|\(\()([^\]\)\}]*)(\]|\)|\}\}|\)\))/g, (match, id, open, content, close) => {
+        let trimmed = content.trim();
+        // If it's already properly quoted, leave it (but normalize inner quotes)
+        if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+          const inner = trimmed.substring(1, trimmed.length - 1).replace(/"/g, "'");
+          return `${id}${open}"${inner}"${close}`;
+        }
+        // Otherwise wrap it and escape inner quotes
+        const safeContent = trimmed.replace(/"/g, "'");
         return `${id}${open}"${safeContent}"${close}`;
       });
 

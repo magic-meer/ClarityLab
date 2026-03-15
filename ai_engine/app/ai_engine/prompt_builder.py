@@ -77,7 +77,7 @@ JSON Schema:
   "explanation": "string - Your main explanation (supports markdown formatting)",
   "key_points": ["string", "string", ...],
   "diagram_type": "string|null - 'mermaid' or 'svg' if a diagram would help",
-  "diagram_code": "string|null - Raw Mermaid/SVG code (no markdown codeblocks)",
+  "diagram_code": "string|null - Raw Mermaid flowchart code. Use ONLY ID[\"Label\"] format with square brackets and double quotes. No markdown fences. Only generate if diagram_type is 'mermaid'.",
   "image_prompt": "string|null - Detailed prompt for image generation",
   "video_prompt": "string|null - Detailed prompt for a short (8s) animated educational video",
   "narration_script": "string|null - 2-3 sentence spoken summary",
@@ -144,18 +144,16 @@ def build_explanation_prompt(
     diagram_instruction = ""
     if generate_diagram:
         diagram_instruction = """
-DIAGRAM GUIDELINES (IMPORTANT):
-- Only include a diagram if visual representation would genuinely help understanding.
-- CRITICAL: Use ONLY Mermaid FLOWCHART syntax (graph TD or graph LR).
-- VALID FLOWCHART EXAMPLE: A["Step 1"] --> B["Step 2"]
-- CRITICAL RULES (syntax is very strict):
-  1. EVERY label MUST be in double quotes exactly ONCE: A["Label Text"]
-  2. Use ONLY square brackets [ ] for all nodes. Example: A["Text"]. Avoid ( ) or { }.
-  3. NEVER use labels on arrows (e.g., NO A -->|label| B). Use a node for descriptions.
-  4. NEVER use any quotes (single or double) UNLESS it is the surrounding pair.
-  5. NEVER use parentheses (), brackets [], or comments %% anywhere.
-  6. Keep labels short (1-4 words).
-- If a complex chart or graph is needed, use SVG instead of Mermaid or set diagram_type to null.
+DIAGRAM GUIDELINES (TECHNICAL):
+- THIS IS AN AUTOMATED APP. Your output will be directly parsed and rendered by Mermaid.js.
+- CRITICAL: Generate ONLY Mermaid flowchart code (graph TD or graph LR). 
+- COMPATIBILITY RULES:
+  1. Use ONLY square bracket nodes: ID["Label Text"]. Avoid ( ) or { }.
+  2. EVERY label MUST be enclosed in exactly one pair of double quotes: A["Text"].
+  3. No labels on arrows (e.g., A --> B). Do not use |Label|.
+  4. No comments (%%) or extra quotes anywhere.
+  5. OUTPUT ONLY THE RAW CODE. No markdown fences, no text.
+- If a diagram is not helpful, set diagram_type to null.
 """
     else:
         diagram_instruction = """
@@ -378,18 +376,18 @@ No other text, no code blocks, just the JSON array."""
 
 def build_step_diagram_prompt(question: str, explanation: str) -> str:
     """Step 3: Generate mermaid diagram code."""
-    return f"""Generate a Mermaid diagram that would help visualize the concept: "{question.strip()}".
-
-Based on this explanation:
-{explanation[:500]}...
-
-Output ONLY raw Mermaid diagram code (like: graph TD A["Start"] --> B["End"]).
-CRITICAL: Every label MUST be in double quotes exactly once (e.g., A["My Label"]).
-CRITICAL: DO NOT use parentheses () or brackets [] inside labels as they break Mermaid syntax.
-NO markdown code blocks, NO ``` fences, NO explanations.
-Just the raw mermaid code.
-If a diagram would not help explain this topic, output: null
-"""
+    return f"""This is part of an AUTOMATED app. Generate a raw Mermaid flowchart for: "{question.strip()}".
+    
+    SYSTEM LOGIC:
+    - We use Mermaid.js flowchart (graph TD/LR).
+    - Parsing is strict: Nodes MUST be formatted as ID["Label"] (square brackets + double quotes).
+    - PARSING RULE: Do NOT use |label| on arrows. Do NOT use quotes or brackets inside labels.
+    - OUTPUT: Raw Mermaid code ONLY. No backticks, no markdown, no conversational filler.
+    
+    Explanation context:
+    {explanation[:500]}...
+    
+    Generate raw Mermaid code (or output 'null' if a diagram is not appropriate):"""
 
 
 def build_step_image_prompt(question: str, explanation: str) -> str:

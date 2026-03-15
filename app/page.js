@@ -529,20 +529,24 @@ function DiagramRenderer({ code }) {
       let sanitized = raw.replace(/```mermaid\n?|```/g, "").trim();
       sanitized = sanitized.replace(/""+/g, '"'); 
 
-      // 2. Ensure it starts with a valid keyword
+      // 2. Detect type and ensure it starts with a valid keyword
       const lines = sanitized.split('\n');
-      const keywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline)/i;
+      const keywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline|xychart-beta)/i;
       const startIndex = lines.findIndex(l => keywords.test(l.trim()));
       if (startIndex !== -1) {
         sanitized = lines.slice(startIndex).join('\n');
       }
 
-      // 3. Fix unquoted labels or malformed ones
-      // We process line by line to avoid mangling keywords
+      const isFlowchart = /^(graph|flowchart)\b/i.test(sanitized.trim());
+
+      // 3. Fix unquoted labels ONLY for flowcharts
+      // For other types like stateDiagram, our sanitization often breaks things
+      if (!isFlowchart) return sanitized;
+
       const processedLines = sanitized.split('\n').map(line => {
         const trimmedLine = line.trim();
-        // Skip lines that start with keywords or are already structured (e.g., state, class, subgraph)
-        if (/^(state|class|subgraph|end|note|style|direction|title|accTitle|accDescr)\b/i.test(trimmedLine)) {
+        // Skip lines that start with keywords or are already structured
+        if (/^(state|class|subgraph|end|note|style|direction|title|accTitle|accDescr|x-axis|y-axis|line|bar|tickInterval|data|min|max)\b/i.test(trimmedLine)) {
           return line;
         }
 
@@ -576,8 +580,10 @@ function DiagramRenderer({ code }) {
       } catch (e) { 
         console.warn("Mermaid first attempt failed, trying aggressive sanitize:", e);
         try {
-          // If it failed, maybe some basic characters are still breaking it
-          // Remove all remaining parentheses from labels if they aren't quoted
+          // Aggressive fallback: ONLY for flowcharts. mangling chart data is fatal.
+          const isFlow = /^(graph|flowchart)\b/i.test(finalCode.trim());
+          if (!isFlow) throw e;
+
           const aggressive = finalCode.replace(/\[(.*?)\]/g, (m, g) => `["${g.replace(/[()]/g, ' ')}"]`)
                                       .replace(/\((.*?)\)/g, (m, g) => `("${g.replace(/[()]/g, ' ')}")`);
           

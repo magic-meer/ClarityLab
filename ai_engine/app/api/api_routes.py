@@ -8,6 +8,7 @@ from typing import Optional, List
 import logging
 import tempfile
 import base64
+import asyncio
 from pathlib import Path
 
 from google import genai
@@ -184,7 +185,7 @@ async def explain_concept(request: ExplanationRequest) -> dict:
         # Use ExplanationGenerator to get structured response
         generator = ExplanationGenerator()
 
-        result = generator.generate_explanation(
+        result = await generator.generate_explanation(
             question=question,
             model_name=request.model_name,
             difficulty=request.difficulty or "auto",
@@ -195,10 +196,10 @@ async def explain_concept(request: ExplanationRequest) -> dict:
         )
 
         if result.get("status") != "success":
-            logger.error(f"Generation failed: {result.get('message')}")
+            logger.error(f"Generation failed: {result.get('message') or result.get('error')}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=result.get("message", "Failed to generate explanation"),
+                detail=result.get("message") or result.get("error") or "Failed to generate explanation",
             )
 
         logger.info("Explanation generated successfully")
@@ -247,7 +248,7 @@ async def explain_concept_steps(request: ExplanationRequest) -> dict:
         # Use StepExplanationGenerator for multi-step processing
         generator = StepExplanationGenerator()
 
-        result = generator.generate_full_explanation(
+        result = await generator.generate_full_explanation(
             question=question,
             difficulty=request.difficulty or "auto",
             generate_diagram=request.generate_diagram,
@@ -308,25 +309,25 @@ async def explain_multiple(
                 detail="Maximum 10 questions allowed per request",
             )
 
-        logger.info(f"Processing {len(questions)} explanation requests")
+        logger.info(f"Processing {len(questions)} explanation requests in parallel")
 
-        results = []
         generator = ExplanationGenerator()
-        for i, question in enumerate(questions, 1):
-            logger.debug(f"Processing question {i}/{len(questions)}")
+        tasks = []
+        for question in questions:
+            sanitized = sanitize_question(question)
+            tasks.append(generator.generate_explanation(sanitized, model_name=model_name))
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        final_results = []
+        for res in results:
+            if isinstance(res, Exception):
+                final_results.append({"status": "error", "error": str(res)})
+            else:
+                final_results.append(res)
 
-            is_valid, error_msg = validate_request_input(question)
-            if not is_valid:
-                logger.warning(f"Question {i} validation failed: {error_msg}")
-                results.append({"status": "error", "error": error_msg})
-                continue
-
-            question = sanitize_question(question)
-            result = generator.generate_explanation(question, model_name=model_name)
-            results.append(result)
-
-        logger.info(f"Processed {len(questions)} requests")
-        return results
+        logger.info(f"Processed {len(questions)} bulk requests")
+        return final_results
 
     except HTTPException:
         raise
@@ -382,8 +383,11 @@ async def analyze_image(
         try:
             logger.info(f"Analyzing image for question: {question[:50]}...")
             handler = MultiModalHandler()
-            analysis_dict = handler.explain_image(
-                question, temp_path, context, model_name=model_name,
+            analysis_dict = await handler.explain_image(
+                question=question,
+                image_path=temp_path,
+                context=context,
+                model_name=model_name,
                 generate_video=generate_video
             )
 
@@ -435,7 +439,7 @@ async def generate_image(request: ImageGenerationRequest) -> dict:
             )
 
         client = get_gemini_client()
-        result = client.generate_image(
+        result = await client.generate_image(
             prompt=request.prompt, model_name=request.model_name
         )
 

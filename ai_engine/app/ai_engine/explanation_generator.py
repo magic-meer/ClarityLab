@@ -23,7 +23,7 @@ class ExplanationGenerator:
         self.parser = ResponseParser()
         logger.debug("ExplanationGenerator initialized")
 
-    def generate_explanation(
+    async def generate_explanation(
         self,
         question: str,
         model_name: Optional[str] = None,
@@ -35,24 +35,8 @@ class ExplanationGenerator:
     ) -> Dict[str, Any]:
         """
         Generate a complete explanation.
-
-        Args:
-            question: Concept or question
-            model_name: Optional override for the model to use
-            difficulty: Difficulty level
-            generate_diagram: Allow diagram generation
-            generate_image: Allow image generation
-            generate_audio: Allow audio generation
-            generate_video: Allow video generation
-
-        Returns:
-            Dictionary with structured explanation
-
-        Raises:
-            InvalidPromptError: If input is invalid
-            ResponseParsingError: If response parsing fails
-            AIEngineException: For other errors
         """
+        import asyncio
         try:
             # Validate input
             if not question or not question.strip():
@@ -60,7 +44,7 @@ class ExplanationGenerator:
 
             logger.info(f"Generating explanation for: {question[:50]}...")
 
-            # Build optimized prompt (AI decides difficulty and outputs)
+            # Build optimized prompt
             prompt = build_explanation_prompt(
                 question=question,
                 difficulty=difficulty,
@@ -71,9 +55,9 @@ class ExplanationGenerator:
             )
             validate_prompt(prompt)
 
-            # Get response from Gemini
+            # Get response from Gemini (Async)
             logger.debug("Sending request to Gemini API")
-            response_data = self.client.generate_content(prompt, model_name=model_name)
+            response_data = await self.client.generate_content(prompt, model_name=model_name)
 
             # Log raw response for debugging
             raw_text = response_data.get("text", "")
@@ -87,28 +71,21 @@ class ExplanationGenerator:
             # Attach usage
             parsed_response["usage"] = response_data.get("usage", {})
 
-            # If an image_prompt was provided and is not empty, generate the image
+            # Prepare async tasks for image/video generation to run in parallel
+            tasks = []
+            task_keys = []
+            
             image_prompt = parsed_response.get("image_prompt")
             if (
                 image_prompt
                 and str(image_prompt).strip()
                 and str(image_prompt).strip().lower() != "null"
+                and generate_image
             ):
-                logger.debug(
-                    f"Image prompt detected, generating image: {image_prompt[:50]}..."
-                )
-                try:
-                    # You can pass a specific model_name if needed, or rely on default
-                    image_result = self.client.generate_image(prompt=image_prompt)
-                    parsed_response["image_base64"] = image_result.get("image_base64")
-                    parsed_response["image_mime_type"] = image_result.get("mime_type")
-                    logger.info("Image generated and attached to response")
-                except Exception as img_err:
-                    logger.error(f"Failed to generate accompanying image: {img_err}")
-                    parsed_response["image_base64"] = None
-                    parsed_response["image_error"] = str(img_err)
-
-            # If a video_prompt was provided, generate the video
+                logger.debug(f"Queuing image generation: {image_prompt[:50]}")
+                tasks.append(self.client.generate_image(prompt=image_prompt))
+                task_keys.append("image")
+            
             video_prompt = parsed_response.get("video_prompt")
             if (
                 video_prompt
@@ -116,51 +93,38 @@ class ExplanationGenerator:
                 and str(video_prompt).strip().lower() != "null"
                 and generate_video
             ):
-                logger.debug(
-                    f"Video prompt detected, generating video: {video_prompt[:50]}..."
-                )
-                try:
-                    video_result = self.client.generate_video(prompt=video_prompt)
-                    parsed_response["video_base64"] = video_result.get("video_base64")
-                    parsed_response["video_mime_type"] = video_result.get("mime_type")
-                    logger.info("Video generated and attached to response")
-                except Exception as vid_err:
-                    logger.error(f"Failed to generate accompanying video: {vid_err}")
-                    parsed_response["video_base64"] = None
-                    parsed_response["video_error"] = str(vid_err)
+                logger.debug(f"Queuing video generation: {video_prompt[:50]}")
+                tasks.append(self.client.generate_video(prompt=video_prompt))
+                task_keys.append("video")
+
+            if tasks:
+                logger.info(f"Executing {len(tasks)} parallel generation tasks")
+                task_results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                for key, res in zip(task_keys, task_results):
+                    if isinstance(res, Exception):
+                        logger.error(f"Parallel task {key} failed: {res}")
+                        parsed_response[f"{key}_error"] = str(res)
+                    elif res:
+                        if key == "image":
+                            parsed_response["image_base64"] = res.get("image_base64")
+                            parsed_response["image_mime_type"] = res.get("mime_type")
+                        elif key == "video":
+                            parsed_response["video_base64"] = res.get("video_base64")
+                            parsed_response["video_mime_type"] = res.get("mime_type")
 
             logger.info("Explanation generated successfully")
             return {"status": "success", "data": parsed_response}
 
-        except InvalidPromptError as e:
-            logger.error(f"Invalid prompt: {e}")
-            return {"status": "error", "error": "Invalid input", "message": str(e)}
-
-        except ResponseParsingError as e:
-            logger.error(f"Response parsing failed: {e}")
-            return {
-                "status": "error",
-                "error": "Response parsing failed",
-                "message": str(e),
-            }
-
-        except AIEngineException as e:
-            logger.error(f"AI engine error: {e}")
-            return {
-                "status": "error",
-                "error": "AI processing error",
-                "message": str(e),
-            }
-
         except Exception as e:
-            logger.error(f"Unexpected error: {e}", exc_info=True)
+            logger.error(f"Unexpected error in generate_explanation: {e}", exc_info=True)
             return {
                 "status": "error",
-                "error": "Unexpected error",
-                "message": "An unexpected error occurred",
+                "error": type(e).__name__,
+                "message": str(e),
             }
 
-    def generate_bulk_explanations(
+    async def generate_bulk_explanations(
         self,
         questions: list[str],
         model_name: Optional[str] = None,
@@ -170,23 +134,12 @@ class ExplanationGenerator:
         generate_video: bool = True,
     ) -> list[Dict[str, Any]]:
         """
-        Generate explanations for multiple questions.
-
-        Args:
-            questions: List of questions
-            model_name: Optional override for the model to use
-            generate_diagram: Allow diagram generation
-            generate_image: Allow image generation
-            generate_audio: Allow audio generation
-            generate_video: Allow video generation
-
-        Returns:
-            List of explanations
+        Generate explanations for multiple questions sequentially.
         """
         results = []
         for i, question in enumerate(questions, 1):
             logger.debug(f"Processing question {i}/{len(questions)}")
-            result = self.generate_explanation(
+            result = await self.generate_explanation(
                 question,
                 model_name=model_name,
                 generate_diagram=generate_diagram,
@@ -204,7 +157,7 @@ PhysicsExplanationGenerator = ExplanationGenerator
 
 
 # Convenience function
-def generate_explanation(
+async def generate_explanation(
     question: str,
     model_name: Optional[str] = None,
     generate_diagram: bool = True,
@@ -214,20 +167,9 @@ def generate_explanation(
 ) -> Dict[str, Any]:
     """
     Generate an explanation (convenience function).
-
-    Args:
-        question: Question
-        model_name: Output model override
-        generate_diagram: Allow diagram generation
-        generate_image: Allow image generation
-        generate_audio: Allow audio generation
-        generate_video: Allow video generation
-
-    Returns:
-        Explanation result dictionary
     """
     generator = ExplanationGenerator()
-    return generator.generate_explanation(
+    return await generator.generate_explanation(
         question,
         model_name=model_name,
         generate_diagram=generate_diagram,

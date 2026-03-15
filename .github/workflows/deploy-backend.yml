@@ -10,6 +10,7 @@ on:
 
 env:
   PROJECT_ID: glachackathon2026
+  GCP_PROJECT_ID: glachackathon2026
   REGION: us-central1
   SERVICE_NAME: claritylab-backend
   REPOSITORY: claritylab-repo
@@ -46,3 +47,4 @@ jobs:
           --platform managed \
           --region ${{ env.REGION }} \
           --allow-unauthenticated
+P

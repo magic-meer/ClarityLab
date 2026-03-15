@@ -145,15 +145,18 @@ def build_explanation_prompt(
     if generate_diagram:
         diagram_instruction = """
 DIAGRAM GUIDELINES (IMPORTANT):
-- Only include a diagram if visual representation would genuinely help understanding
-- For Mermaid diagrams, use ONLY valid syntax:
-  - Flowcharts: graph TD/LR, node shapes (A[Rectangle], B(Rounded), C(Diamond))
-  - Use --> for arrows, --- for lines
-  - Labels go in double quotes: A["Label"]
-  - Subgraphs: subgraph name...endsubgraph
-- Test your mermaid code mentally before outputting
-- Common errors to avoid: missing quotes, invalid shapes, unclosed brackets
-- If unsure about syntax, set diagram_type to null"""
+- Only include a diagram if visual representation would genuinely help understanding.
+- CRITICAL: Use ONLY Mermaid FLOWCHART syntax (graph TD or graph LR).
+- VALID FLOWCHART EXAMPLE: A["Step 1"] --> B["Step 2"]
+- CRITICAL RULES (syntax is very strict):
+  1. EVERY label MUST be in double quotes exactly ONCE: A["Label Text"]
+  2. Use ONLY square brackets [ ] for all nodes. Example: A["Text"]. Avoid ( ) or { }.
+  3. NEVER use labels on arrows (e.g., NO A -->|label| B). Use a node for descriptions.
+  4. NEVER use any quotes (single or double) UNLESS it is the surrounding pair.
+  5. NEVER use parentheses (), brackets [], or comments %% anywhere.
+  6. Keep labels short (1-4 words).
+- If a complex chart or graph is needed, use SVG instead of Mermaid or set diagram_type to null.
+"""
     else:
         diagram_instruction = """
 - diagram_type: MUST be null (user disabled)"""
@@ -380,11 +383,13 @@ def build_step_diagram_prompt(question: str, explanation: str) -> str:
 Based on this explanation:
 {explanation[:500]}...
 
-Output ONLY raw Mermaid diagram code (like: graph TD A --> B).
+Output ONLY raw Mermaid diagram code (like: graph TD A["Start"] --> B["End"]).
+CRITICAL: Every label MUST be in double quotes exactly once (e.g., A["My Label"]).
+CRITICAL: DO NOT use parentheses () or brackets [] inside labels as they break Mermaid syntax.
 NO markdown code blocks, NO ``` fences, NO explanations.
 Just the raw mermaid code.
-
-If a diagram would not help explain this topic, output: null"""
+If a diagram would not help explain this topic, output: null
+"""
 
 
 def build_step_image_prompt(question: str, explanation: str) -> str:

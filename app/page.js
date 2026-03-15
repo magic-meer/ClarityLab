@@ -584,8 +584,14 @@ function DiagramRenderer({ code }) {
           const isFlow = /^(graph|flowchart)\b/i.test(finalCode.trim());
           if (!isFlow) throw e;
 
-          const aggressive = finalCode.replace(/\[(.*?)\]/g, (m, g) => `["${g.replace(/[()]/g, ' ')}"]`)
-                                      .replace(/\((.*?)\)/g, (m, g) => `("${g.replace(/[()]/g, ' ')}")`);
+          // Strip all existing quotes and then wrap properly to avoid [""Text""]
+          const aggressive = finalCode.replace(/\[(.*?)\]/g, (m, g) => {
+            const clean = g.replace(/["']/g, "").replace(/[()]/g, " ");
+            return `["${clean}"]`;
+          }).replace(/\((.*?)\)/g, (m, g) => {
+            const clean = g.replace(/["']/g, "").replace(/[()]/g, " ");
+            return `("${clean}")`;
+          });
           
           const { svg: svg2 } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, aggressive);
           setSvg(svg2);

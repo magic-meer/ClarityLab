@@ -147,14 +147,14 @@ def build_explanation_prompt(
 DIAGRAM GUIDELINES (IMPORTANT):
 - Only include a diagram if visual representation would genuinely help understanding.
 - CRITICAL: Use ONLY Mermaid FLOWCHART syntax (graph TD or graph LR).
-- CRITICAL: DO NOT use 'xychart-beta', 'stateDiagram', 'sequenceDiagram', or any other type. Our renderer ONLY supports flowcharts perfectly.
 - VALID FLOWCHART EXAMPLES:
   - Good: A["Step 1"] --> B["Step 2"]
   - Good: C{"Decision?"} --> D["Yes"]
-- CRITICAL RULES:
-  1. EVERY label MUST be in double quotes: A["Label Text"]
-  2. NEVER use parentheses () or brackets [] inside labels. Use dashes or spaces.
-  3. Keep labels short and simple. (e.g. "Process A" instead of "A description (with detail)")
+- CRITICAL RULES (syntax is very strict):
+  1. EVERY label MUST be in double quotes exactly ONCE: A["Label Text"]
+  2. NEVER use any quotes (single or double) INSIDE a label.
+  3. NEVER use parentheses () or brackets [] inside labels.
+  4. Keep labels short (1-4 words).
 - If a complex chart or graph is needed, use SVG instead of Mermaid or set diagram_type to null.
 """
     else:

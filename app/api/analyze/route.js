@@ -24,7 +24,7 @@ export async function POST(request) {
     }
 
     const backendUrl =
-      process.env.BACKEND_URL || "http://localhost:8000";
+      process.env.BACKEND_URL || "http://localhost:800";
 
     // Build backend FormData with all fields
     const backendForm = new FormData();

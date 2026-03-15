@@ -11,7 +11,7 @@ export async function POST(request) {
     }
 
     const backendUrl =
-      process.env.BACKEND_URL || "http://localhost:8000";
+      process.env.BACKEND_URL || "http://localhost:8080";
 
     const res = await fetch(`${backendUrl}/api/generate-image`, {
       method: "POST",

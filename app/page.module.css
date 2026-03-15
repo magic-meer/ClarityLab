@@ -132,7 +132,7 @@
 .chatArea {
   flex: 1;
   overflow-y: auto;
-  padding: 40px 20px;
+  padding: 40px 20px 180px; /* Increased bottom padding to clear floating prompt */
   display: flex;
   flex-direction: column;
   gap: 32px;

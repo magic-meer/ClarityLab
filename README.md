@@ -9,13 +9,13 @@
 
 ## Overview
 
-**ClarityLab** is an advanced AI-powered educational platform designed to break down extremely complex subjects into digestible, multimodal explanations. By leveraging the power of **Google Cloud Vertex AI** and the latest **Gemini** multimodal ecosystem (including Gemini 2.5 Flash/Pro, Imagen 3, and Veo 2), ClarityLab generates a rich, textbook-like learning experience completely on the fly. 
+**ClarityLab** is an advanced AI-powered educational platform designed to break down extremely complex subjects into digestible, multimodal explanations. By leveraging the power of **Google Cloud Vertex AI** and the latest **Gemini** multimodal ecosystem (including Gemini 2.5 Flash/Pro, Imagen 3 & Imagen 4 Ultra, and Veo 3.1), ClarityLab generates a rich, textbook-like learning experience completely on the fly. 
 
 When you ask a question, ClarityLab acts as an intelligent agent. It dynamically assesses the query's complexity, devises an execution plan, and natively orchestrates:
 - **Textual Explanations:** Tailored to your learning level (Beginner to Expert).
-- **Visual Diagrams:** Dynamically generated systemic and conceptual relationships rendered via Mermaid.js.
+- **Visual Diagrams:** AI-generated professional diagram images using Imagen 4 Ultra.
 - **Images:** High-fidelity conceptual illustrations natively synthesized using Google Imagen 3.
-- **Educational Videos:** Synthetic learning visual sequences powered by Veo 2 on Vertex AI.
+- **Educational Videos:** Synthetic learning visual sequences powered by Veo 3.1 on Vertex AI.
 - **Narration:** Read-aloud Native Text-to-Speech integration for auditory learners.
 
 ## System Architecture
@@ -35,7 +35,7 @@ flowchart TB
     subgraph Frontend [Next.js 15 Frontend Client]
         UI[Chat UI & Components]
         TTS[Native SpeechSynthesis TTS]
-        Render[Markdown & Mermaid Renderer]
+        Render[Markdown & Multimedia Renderer]
     end
 
     %% Backend (FastAPI)
@@ -52,9 +52,10 @@ flowchart TB
 
     %% Vertex AI / GCP Ecosystem
     subgraph GCP [Google Cloud Vertex AI]
-        Gemini[Gemini 2.x Models]
-        Imagen[Imagen 3.0]
-        Veo[Veo 2.0 Video Gen]
+        Gemini[Gemini 2.5 Models]
+        Imagen[Imagen 3.0 Illustrations]
+        ImagenUltra[Imagen 4.0 Ultra Diagrams]
+        Veo[Veo 3.1 Video Gen]
     end
     
     %% Connections
@@ -64,12 +65,13 @@ flowchart TB
     
     %% Backend to Cloud calls
     TextGen == "Generate Content" ==> Gemini
-    VisGen == "Diagram Prompts" ==> Gemini
+    VisGen == "Diagram Prompts" ==> ImagenUltra
     VisGen == "Image Prompts" ==> Imagen
     VisGen == "Video Prompts" ==> Veo
     
     %% Responses
-    Gemini -. "Mermaid/Text Data" .-> API
+    Gemini -. "Text Data" .-> API
+    ImagenUltra -. "Base64 Diagram Image" .-> API
     Imagen -. "Base64 Image" .-> API
     Veo -. "Base64 Video" .-> API
     
@@ -83,7 +85,7 @@ flowchart TB
     
     class UI,TTS,Render client;
     class API,Planner,TextGen,VisGen be;
-    class Gemini,Imagen,Veo cloud;
+    class Gemini,Imagen,ImagenUltra,Veo cloud;
 ```
 
 ## Tech Stack
@@ -91,7 +93,7 @@ flowchart TB
 **Frontend:**
 - **Framework:** [Next.js 15](https://nextjs.org/) (App Router)
 - **UI & Styling:** React 19, Vanilla CSS Modules
-- **Rendering Elements:** `react-markdown`, `mermaid`, `katex`
+- **Rendering Elements:** `react-markdown`, `katex`
 - **Audio:** Web SpeechSynthesis API
 
 **Backend (AI Engine):**
@@ -100,7 +102,7 @@ flowchart TB
 - **Language:** Python 3.11+
 
 **Google Cloud Services & Infrastructure:**
-- **Vertex AI:** Core machine learning platform powering Gemini 2.x, Imagen 3, and Veo 2 models.
+- **Vertex AI:** Core machine learning platform powering Gemini 2.5, Imagen 3, Imagen 4 Ultra, and Veo 3.1 models.
 - **Cloud Run:** Serverless container hosting for the FastAPI backend.
 - **Artifact Registry:** Docker image storage for CI/CD deployments.
 - **Cloud Text-to-Speech:** High-quality Journey/Standard voices for narration.

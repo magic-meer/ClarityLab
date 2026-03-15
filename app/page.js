@@ -211,49 +211,53 @@ export default function Home() {
 
         <div className={styles.inputContainer}>
           <form className={styles.inputArea} onSubmit={handleSubmit}>
-            <div className={styles.settingsRow}>
-              <div className={styles.dropdown} ref={diffMenuRef}>
-                <button type="button" className={styles.dropdownBtn} onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}>
-                  <span>Difficulty: {difficulty}</span>
-                </button>
-                {showDifficultyMenu && (
-                  <div className={styles.dropdownMenu}>
-                    {['beginner', 'intermediate', 'advanced', 'expert', 'auto'].map(lvl => (
-                      <button key={lvl} type="button" onClick={() => { setDifficulty(lvl); setShowDifficultyMenu(false); }}>
-                        {lvl}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.dropdown} ref={featMenuRef}>
-                <button type="button" className={styles.dropdownBtn} onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}>
-                  <span>Assets</span>
-                </button>
-                {showFeaturesMenu && (
-                  <div className={styles.dropdownMenu}>
-                    <label><input type="checkbox" checked={generateDiagram} onChange={e => setGenerateDiagram(e.target.checked)} /> Diagrams</label>
-                    <label><input type="checkbox" checked={generateImage} onChange={e => setGenerateImage(e.target.checked)} /> Images</label>
-                    <label><input type="checkbox" checked={generateVideo} onChange={e => setGenerateVideo(e.target.checked)} /> Video</label>
-                  </div>
-                )}
-              </div>
-            </div>
-
             <div className={styles.inputWrapper}>
-              <input
-                ref={inputRef}
-                type="text"
-                className={styles.input}
-                placeholder="Explain..."
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                disabled={loading}
-              />
-              <button type="submit" className={styles.sendBtn} disabled={loading || !question.trim()}>
-                {loading ? "..." : "→"}
-              </button>
+              <div className={styles.composerControls}>
+                <div className={styles.dropdown} ref={diffMenuRef}>
+                  <button type="button" className={styles.dropdownBtn} onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}>
+                    <span aria-hidden="true">🎚️</span>
+                    <span>{difficulty}</span>
+                  </button>
+                  {showDifficultyMenu && (
+                    <div className={styles.dropdownMenu}>
+                      {['beginner', 'intermediate', 'advanced', 'expert', 'auto'].map(lvl => (
+                        <button key={lvl} type="button" onClick={() => { setDifficulty(lvl); setShowDifficultyMenu(false); }}>
+                          {lvl}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.dropdown} ref={featMenuRef}>
+                  <button type="button" className={styles.dropdownBtn} onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}>
+                    <span aria-hidden="true">🧩</span>
+                    <span>Assets</span>
+                  </button>
+                  {showFeaturesMenu && (
+                    <div className={styles.dropdownMenu}>
+                      <label><input type="checkbox" checked={generateDiagram} onChange={e => setGenerateDiagram(e.target.checked)} /> Diagrams</label>
+                      <label><input type="checkbox" checked={generateImage} onChange={e => setGenerateImage(e.target.checked)} /> Images</label>
+                      <label><input type="checkbox" checked={generateVideo} onChange={e => setGenerateVideo(e.target.checked)} /> Video</label>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.textInputRow}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  className={styles.input}
+                  placeholder="Explain..."
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  disabled={loading}
+                />
+                <button type="submit" className={styles.sendBtn} disabled={loading || !question.trim()}>
+                  {loading ? "..." : "→"}
+                </button>
+              </div>
             </div>
           </form>
         </div>

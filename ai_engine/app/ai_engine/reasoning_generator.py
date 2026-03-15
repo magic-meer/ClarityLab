@@ -35,7 +35,7 @@ OUTPUT FORMAT (JSON):
     "explanation_prompt": "Highly detailed prompt for the text generator. Include narrative style, hook requirements, and specific concepts to cover.",
     "diagram_prompt": "Prompt for a Mermaid or SVG diagram. Must be 'null' if not needed.",
     "image_prompt": "Detailed prompt for Imagen 3. Must be 'null' if not needed.",
-    "video_prompt": "Detailed prompt for Veo 3.1 animated explainer. Must be 'null' if not needed.",
+    "video_prompt": "Detailed prompt for Veo animated explainer. Must be 'null' if not needed.",
     "narration_prompt": "Prompt for a short summary script. Must be 'null' if not needed.",
     "followup_prompt": "Prompt to generate target follow-up questions."
 }}
@@ -80,7 +80,8 @@ User Preference Toggles:
 
 Generate the plan JSON:"""
 
-        logger.info(f"Generating reasoning plan for: {question[:50]}")
+        q_preview = str(question)[:50]
+        logger.info(f"Generating reasoning plan for: {q_preview}")
         
         try:
             # Combine for a single call if model supports it, or use system instruction

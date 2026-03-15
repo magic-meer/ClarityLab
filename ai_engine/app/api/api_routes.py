@@ -426,10 +426,11 @@ async def analyze_image(
     summary="Generate Image",
     description="Generate an image using Vertex AI Imagen model based on a text prompt",
 )
-async def generate_image(request: ImageGenerationRequest) -> dict:
+async def generate_image(request: AssetGenerationRequest) -> dict:
     """Generate image from a prompt."""
     try:
-        logger.info(f"Processing image generation request: {request.prompt[:50]}...")
+        prompt_preview = str(request.prompt)[:50]
+        logger.info(f"Processing image generation request: {prompt_preview}...")
 
         is_valid, error_msg = validate_request_input(request.prompt)
         if not is_valid:

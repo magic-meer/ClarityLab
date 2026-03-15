@@ -263,6 +263,7 @@ function AssistantBubble({ data }) {
   const [followups, setFollowups] = useState(null);
   const [loadingText, setLoadingText] = useState(true);
   const [status, setStatus] = useState("Generating content...");
+  const [expandedAsset, setExpandedAsset] = useState(null);
 
   const prompts = data.prompts;
 
@@ -346,13 +347,13 @@ function AssistantBubble({ data }) {
 
         <aside className={styles.assetSidebar}>
           {diagram && (
-            <div className={styles.assetCard}>
+            <div className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'diagram', data: diagram.text || diagram })}>
               <h5>Visual Representation</h5>
               <DiagramRenderer code={diagram.text || diagram} />
             </div>
           )}
           {image && (
-            <div className={styles.assetCard}>
+            <div className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'image', data: image })}>
               <img src={`data:${image.mime_type || 'image/jpeg'};base64,${image.image_base64}`} alt="Illustration" />
             </div>
           )}
@@ -361,6 +362,21 @@ function AssistantBubble({ data }) {
 
       {!loadingText && !status && <CircularProgress status="Complete" />}
       {loadingText && <CircularProgress status="Generating text..." />}
+
+      {expandedAsset && (
+        <div className={styles.modalOverlay} onClick={() => setExpandedAsset(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <button className={styles.closeModal} onClick={() => setExpandedAsset(null)}>×</button>
+            {expandedAsset.type === 'image' ? (
+              <img src={`data:${expandedAsset.data.mime_type || 'image/jpeg'};base64,${expandedAsset.data.image_base64}`} alt="Expanded view" />
+            ) : (
+              <div className={styles.modalDiagram}>
+                <DiagramRenderer code={expandedAsset.data} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -374,9 +390,21 @@ function DiagramRenderer({ code }) {
     const render = async () => {
       try {
         const cleanCode = code.replace(/```mermaid\n?|```/g, "").trim();
+        
+        // If it's already an SVG, just set it
+        if (cleanCode.includes('<svg') && cleanCode.includes('</svg>')) {
+          setSvg(cleanCode);
+          return;
+        }
+
+        // Otherwise try to render as mermaid
         const { svg } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, cleanCode);
         setSvg(svg);
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+        console.error("Diagram render error:", e);
+        // Fallback: If it looks like text but failed mermaid, maybe it's raw text?
+        // For now, just show the error in the console.
+      }
     };
     render();
   }, [code]);

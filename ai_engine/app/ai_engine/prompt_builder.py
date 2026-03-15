@@ -145,15 +145,15 @@ def build_explanation_prompt(
     if generate_diagram:
         diagram_instruction = """
 DIAGRAM GUIDELINES (IMPORTANT):
-- Only include a diagram if visual representation would genuinely help understanding
-- Use Mermaid FLOWCHART (graph TD or graph LR) for maximum compatibility.
+- Only include a diagram if visual representation would genuinely help understanding.
+- CRITICAL: Use ONLY Mermaid FLOWCHART syntax (graph TD or graph LR).
+- CRITICAL: DO NOT use 'stateDiagram', 'sequenceDiagram', or any other type unless the user specifically asks for it.
 - VALID SYNTAX EXAMPLES:
   - Good: A["Step 1"] --> B["Step 2"]
   - Good: C{"Decision?"} --> D["Yes"]
-  - BAD (Do not use): A(Step (1))  <-- Nested parentheses break things.
 - CRITICAL RULES:
-  1. EVERY label MUST be in double quotes exactly ONCE: A["Label Text"]
-  2. NEVER use parentheses () inside labels. Use dashes or brackets if needed.
+  1. EVERY label MUST be in double quotes: A["Label Text"]
+  2. NEVER use parentheses () or brackets [] inside labels. Use dashes or spaces.
   3. Keep labels short and simple.
 - If unsure about syntax, set diagram_type to null.
 """

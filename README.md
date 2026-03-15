@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/icon.svg" alt="ClarityLab Logo" width="120" />
+  <img src="app/icon.svg" alt="ClarityLab Logo" width="120" />
   <h1>ClarityLab</h1>
   <p><em>An intelligent, multimodal AI learning agent that explains complex topics through text, dynamic diagrams, images, and video.</em></p>
   <p><b>Created for the Gemini Live Agent Challenge 2026</b></p>

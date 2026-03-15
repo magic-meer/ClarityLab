@@ -24,8 +24,6 @@ ClarityLab consists of a **Next.js 15 frontend** that communicates with a **Fast
 
 ### High-Level Architecture Diagram (Mermaid)
 
-> *Tip: You can copy the code below and paste it into Draw.io (using Arrange > Insert > Advanced > Mermaid) or view it using any Markdown previewer that supports Mermaid.js.*
-
 ```mermaid
 flowchart TB
     %% Entities
@@ -186,16 +184,10 @@ The AI Engine is containerized using `Dockerfile.backend` and hosted on Google C
 2. It builds the Docker image and pushes it to **Google Artifact Registry**.
 3. It deploys the latest image to **Google Cloud Run**, ensuring the Service Account used has permissions for Vertex AI.
 
-*(See the `GITHUB_ACTIONS.md` file for details on setting up the necessary IAM permissions and repository secrets!)*
 
 ## Project Showcase
 
-*(Replace these placeholders with actual screenshots or video links once running!)*
 
-- **Multimodal Explanations In Action:**  
-  ![Showcase Placeholder](https://via.placeholder.com/800x400.png?text=ClarityLab+Desktop+UI)
-- **Dynamically Generated Video (Veo) & Diagram:**  
-  ![Showcase Video Generation](https://via.placeholder.com/800x400.png?text=Generated+Video+and+Diagram+View)
 
 ## Contributing
 
@@ -206,7 +198,3 @@ We welcome contributions from the community! If you're inspired by the **Gemini 
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
-
-## License
-
-This project is open-source and available under the standard MIT License. Feel free to use, modify, and distribute the code as you see fit!

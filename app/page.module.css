@@ -333,6 +333,163 @@
   margin-top: 0.5em;
 }
 
+/* ===== Markdown Rendering ===== */
+.markdownContent {
+  max-width: 72ch;
+  width: 100%;
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
+}
+
+.markdownContent > *:first-child {
+  margin-top: 0;
+}
+
+.markdownContent > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdownContent h1,
+.markdownContent h2,
+.markdownContent h3,
+.markdownContent h4 {
+  color: var(--text-primary);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 680;
+  margin: 1.35em 0 0.5em;
+}
+
+.markdownContent h1 {
+  font-size: clamp(1.45rem, 2.2vw, 1.85rem);
+}
+
+.markdownContent h2 {
+  font-size: clamp(1.25rem, 1.8vw, 1.55rem);
+}
+
+.markdownContent h3 {
+  font-size: clamp(1.1rem, 1.4vw, 1.25rem);
+}
+
+.markdownContent h4 {
+  font-size: clamp(1rem, 1.15vw, 1.1rem);
+}
+
+.markdownContent p,
+.markdownContent ul,
+.markdownContent ol,
+.markdownContent blockquote,
+.markdownContent pre,
+.markdownContent table,
+.markdownContent hr {
+  margin: 0.85em 0;
+}
+
+.markdownContent ul,
+.markdownContent ol {
+  padding-left: 1.25rem;
+}
+
+.markdownContent li + li {
+  margin-top: 0.35em;
+}
+
+.markdownContent blockquote {
+  margin-left: 0;
+  padding: 0.65rem 0.95rem;
+  border-left: 3px solid color-mix(in srgb, var(--accent) 62%, var(--border));
+  background: color-mix(in srgb, var(--bg-hover) 78%, var(--bg-card));
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+  border-radius: 0 10px 10px 0;
+}
+
+.inlineCode {
+  padding: 0.12rem 0.38rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-hover) 76%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+.markdownContent pre {
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-hover) 86%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  overflow-x: auto;
+}
+
+.markdownContent pre code {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.markdownContent a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.15em;
+  transition: color 0.2s ease;
+}
+
+.markdownContent a:hover {
+  color: var(--accent-hover);
+}
+
+.markdownContent hr {
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+}
+
+.markdownContent img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+}
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+}
+
+.tableWrapper table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  background: var(--bg-card);
+}
+
+.tableWrapper th,
+.tableWrapper td {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableWrapper th {
+  font-weight: 650;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-hover) 82%, var(--bg-card));
+}
+
+.tableWrapper tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg-hover) 32%, var(--bg-card));
+}
+
 .assetSidebar {
   position: sticky;
   top: 20px;

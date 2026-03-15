@@ -36,7 +36,7 @@ class GeminiClient:
             logger.error(f"Failed to initialize Gemini client: {e}")
             raise GeminiAPIError(f"Initialization failed: {str(e)}")
 
-    def generate_content(
+    async def generate_content(
         self, prompt: str, model_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
@@ -61,7 +61,8 @@ class GeminiClient:
                 temperature=0.7,
             )
 
-            response = self.client.models.generate_content(
+            # Use await for the async call
+            response = await self.client.models.generate_content(
                 model=model, contents=prompt, config=config
             )
 
@@ -85,11 +86,11 @@ class GeminiClient:
             logger.error(f"Gemini API error: {e}")
             raise GeminiAPIError(f"Content generation failed: {str(e)}")
 
-    def generate_content_with_image(
+    async def generate_content_with_image(
         self, prompt: str, image_path: str, model_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Generate text content based on an image and a pr)ompt.
+        Generate text content based on an image and a prompt.
 
         Args:
             prompt: Question or instruction about the image
@@ -115,7 +116,7 @@ class GeminiClient:
 
             logger.debug(f"Sending image analyze request using model: {model}")
 
-            response = self.client.models.generate_content(
+            response = await self.client.models.generate_content(
                 model=model,
                 contents=[img, prompt],
                 config=types.GenerateContentConfig(
@@ -143,7 +144,7 @@ class GeminiClient:
             logger.error(f"Gemini API multimodal error: {e}")
             raise GeminiAPIError(f"Multimodal generation failed: {str(e)}")
 
-    def generate_image(
+    async def generate_image(
         self, prompt: str, model_name: Optional[str] = "imagen-3.0-generate-001"
     ) -> Dict[str, Any]:
         """
@@ -160,7 +161,7 @@ class GeminiClient:
             logger.debug(f"Sending image generation request using model: {model_name}")
             import base64
 
-            result = self.client.models.generate_images(
+            result = await self.client.models.generate_images(
                 model=model_name,
                 prompt=prompt,
                 config=types.GenerateImagesConfig(
@@ -186,7 +187,7 @@ class GeminiClient:
             logger.error(f"Gemini API image generation error: {e}")
             raise GeminiAPIError(f"Image generation failed: {str(e)}")
 
-    def generate_video(
+    async def generate_video(
         self, prompt: str, model_name: Optional[str] = "veo-3.1-generate-preview"
     ) -> Dict[str, Any]:
         """
@@ -202,10 +203,10 @@ class GeminiClient:
         try:
             logger.info(f"Sending video generation request using model: {model_name}")
             import base64
-            import time
+            import asyncio
 
             # Start the long-running operation
-            operation = self.client.models.generate_videos(
+            operation = await self.client.models.generate_videos(
                 model=model_name,
                 prompt=prompt,
                 config=types.GenerateVideosConfig(
@@ -218,8 +219,9 @@ class GeminiClient:
             # Poll until complete
             logger.info(f"Waiting for video generation (Operation: {operation.name})...")
             while not operation.done:
-                time.sleep(10)
-                operation = self.client.operations.get(operation)
+                # CRITICAL: Use asyncio.sleep to avoid blocking the event loop
+                await asyncio.sleep(5)
+                operation = await self.client.operations.get(operation)
 
             response = operation.response
             if not response or not response.generated_videos:

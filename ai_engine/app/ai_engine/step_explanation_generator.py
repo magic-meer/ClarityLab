@@ -28,11 +28,11 @@ class StepExplanationGenerator:
         self.client = get_gemini_client()
         logger.debug("StepExplanationGenerator initialized")
 
-    def generate_step(self, prompt: str, step_name: str) -> Dict[str, Any]:
+    async def generate_step(self, prompt: str, step_name: str) -> Dict[str, Any]:
         """Execute a single step and return the result."""
         try:
             logger.info(f"Executing step: {step_name}")
-            response = self.client.generate_content(prompt)
+            response = await self.client.generate_content(prompt)
             text = response.get("text", "").strip()
 
             usage = {
@@ -48,7 +48,7 @@ class StepExplanationGenerator:
             logger.error(f"Step {step_name} failed: {e}")
             return {"status": "error", "error": str(e)}
 
-    def generate_full_explanation(
+    async def generate_full_explanation(
         self,
         question: str,
         difficulty: str = "auto",
@@ -59,15 +59,6 @@ class StepExplanationGenerator:
     ) -> Dict[str, Any]:
         """
         Generate a complete explanation using multi-step process.
-
-        Steps:
-        1. Generate main explanation (markdown)
-        2. Extract key points
-        3. Generate diagram (if enabled)
-        4. Generate image prompt + image (if enabled)
-        5. Generate narration (if enabled)
-        6. Generate video prompt + video (if enabled)
-        7. Generate follow-up questions
         """
         result = {
             "topic": question.strip(),
@@ -88,7 +79,7 @@ class StepExplanationGenerator:
         total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
         # Step 1: Generate main explanation
-        step1 = self.generate_step(
+        step1 = await self.generate_step(
             build_step_explanation_prompt(question, difficulty), "explanation"
         )
         if step1["status"] == "success":
@@ -101,7 +92,7 @@ class StepExplanationGenerator:
             return {"status": "error", "error": "Failed to generate explanation"}
 
         # Step 2: Extract key points
-        step2 = self.generate_step(
+        step2 = await self.generate_step(
             build_step_keypoints_prompt(question, result["explanation"], difficulty),
             "key_points",
         )
@@ -122,7 +113,7 @@ class StepExplanationGenerator:
 
         # Step 3: Generate diagram
         if generate_diagram:
-            step3 = self.generate_step(
+            step3 = await self.generate_step(
                 build_step_diagram_prompt(question, result["explanation"]), "diagram"
             )
             if step3["status"] == "success" and step3["text"].lower() != "null":
@@ -134,13 +125,13 @@ class StepExplanationGenerator:
 
         # Step 4: Generate image
         if generate_image:
-            step4 = self.generate_step(
+            step4 = await self.generate_step(
                 build_step_image_prompt(question, result["explanation"]), "image_prompt"
             )
             if step4["status"] == "success" and step4["text"].lower() != "null":
                 image_prompt = step4["text"]
                 try:
-                    image_result = self.client.generate_image(prompt=image_prompt)
+                    image_result = await self.client.generate_image(prompt=image_prompt)
                     result["image_base64"] = image_result.get("image_base64")
                     result["image_mime_type"] = image_result.get("mime_type")
                 except Exception as e:
@@ -151,7 +142,7 @@ class StepExplanationGenerator:
 
         # Step 5: Generate narration
         if generate_audio:
-            step5 = self.generate_step(
+            step5 = await self.generate_step(
                 build_step_narration_prompt(
                     question, result["explanation"], difficulty
                 ),
@@ -165,13 +156,13 @@ class StepExplanationGenerator:
 
         # Step 6: Generate video
         if generate_video:
-            step6 = self.generate_step(
+            step6 = await self.generate_step(
                 build_step_video_prompt(question, result["explanation"]), "video_prompt"
             )
             if step6["status"] == "success" and step6["text"].lower() != "null":
                 video_prompt = step6["text"]
                 try:
-                    video_result = self.client.generate_video(prompt=video_prompt)
+                    video_result = await self.client.generate_video(prompt=video_prompt)
                     result["video_base64"] = video_result.get("video_base64")
                     result["video_mime_type"] = video_result.get("mime_type")
                 except Exception as e:
@@ -181,7 +172,7 @@ class StepExplanationGenerator:
                 total_usage["total_tokens"] += step6["usage"]["total_tokens"]
 
         # Step 7: Generate follow-up questions
-        step7 = self.generate_step(
+        step7 = await self.generate_step(
             build_step_followup_prompt(question, result["explanation"]), "follow_up"
         )
         if step7["status"] == "success":
@@ -204,7 +195,7 @@ class StepExplanationGenerator:
         return {"status": "success", "data": result}
 
 
-def generate_explanation_step(
+async def generate_explanation_step(
     question: str,
     difficulty: str = "auto",
     generate_diagram: bool = True,
@@ -214,7 +205,7 @@ def generate_explanation_step(
 ) -> Dict[str, Any]:
     """Convenience function for step-based explanation."""
     generator = StepExplanationGenerator()
-    return generator.generate_full_explanation(
+    return await generator.generate_full_explanation(
         question=question,
         difficulty=difficulty,
         generate_diagram=generate_diagram,

@@ -184,11 +184,6 @@ The AI Engine is containerized using `Dockerfile.backend` and hosted on Google C
 2. It builds the Docker image and pushes it to **Google Artifact Registry**.
 3. It deploys the latest image to **Google Cloud Run**, ensuring the Service Account used has permissions for Vertex AI.
 
-
-## Project Showcase
-
-
-
 ## Contributing
 
 We welcome contributions from the community! If you're inspired by the **Gemini Live Agent Challenge 2026** and want to enhance ClarityLab:

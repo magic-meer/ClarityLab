@@ -261,14 +261,30 @@ function AssistantBubble({ data }) {
   const [image, setImage] = useState(null);
   const [video, setVideo] = useState(null);
   const [followups, setFollowups] = useState(null);
-  const [loadingText, setLoadingText] = useState(true);
-  const [status, setStatus] = useState("Generating content...");
-  const [expandedAsset, setExpandedAsset] = useState(null);
-
   const prompts = data.prompts;
+
+  const [loading, setLoading] = useState({
+    explanation: true,
+    diagram: prompts?.diagram_prompt ? true : false,
+    image: prompts?.image_prompt ? true : false,
+    video: prompts?.video_prompt ? true : false,
+    followups: prompts?.followup_prompt ? true : false
+  });
+  const [status, setStatus] = useState("Generating explanation...");
+  const [expandedAsset, setExpandedAsset] = useState(null);
 
   useEffect(() => {
     if (!prompts) return;
+
+    // Helper to update status
+    const updateStatus = (states) => {
+      if (states.explanation) return "Generating text...";
+      if (states.image) return "Generating image...";
+      if (states.diagram) return "Generating diagram...";
+      if (states.video) return "Generating video...";
+      if (states.followups) return "Rounding up...";
+      return "";
+    };
 
     // Fetch Explanation
     const fetchExplanation = async () => {
@@ -281,11 +297,15 @@ function AssistantBubble({ data }) {
         const d = await res.json();
         setExplanation(d.data?.text || d.data);
       } catch (e) { console.error(e); }
-      setLoadingText(false);
+      setLoading(prev => {
+        const next = { ...prev, explanation: false };
+        setStatus(updateStatus(next));
+        return next;
+      });
     };
 
-    // Fetch Assets in parallel
-    const fetchAsset = async (endpoint, prompt, setter) => {
+    // Fetch Asset
+    const fetchAsset = async (endpoint, prompt, key, setter) => {
       if (!prompt) return;
       try {
         const res = await fetch(endpoint, {
@@ -296,13 +316,18 @@ function AssistantBubble({ data }) {
         const d = await res.json();
         setter(d.data);
       } catch (e) { console.error(e); }
+      setLoading(prev => {
+        const next = { ...prev, [key]: false };
+        setStatus(updateStatus(next));
+        return next;
+      });
     };
 
     fetchExplanation();
-    fetchAsset("/api/generate-diagram", prompts.diagram_prompt, setDiagram);
-    fetchAsset("/api/generate-image", prompts.image_prompt, setImage);
-    fetchAsset("/api/generate-video", prompts.video_prompt, setVideo);
-    fetchAsset("/api/generate-explanation", prompts.followup_prompt, (d) => setFollowups(d?.text || d));
+    fetchAsset("/api/generate-diagram", prompts.diagram_prompt, "diagram", setDiagram);
+    fetchAsset("/api/generate-image", prompts.image_prompt, "image", setImage);
+    fetchAsset("/api/generate-video", prompts.video_prompt, "video", setVideo);
+    fetchAsset("/api/generate-explanation", prompts.followup_prompt, "followups", (d) => setFollowups(d?.text || d));
 
   }, [prompts]);
 
@@ -312,6 +337,10 @@ function AssistantBubble({ data }) {
     window.speechSynthesis.speak(utterance);
   };
 
+  const toStr = (val) => typeof val === 'string' ? val : (val?.text || "");
+
+  const anyLoading = Object.values(loading).some(v => v);
+
   return (
     <div className={styles.assistantContent}>
       <div className={styles.textbookHeader}>
@@ -319,15 +348,22 @@ function AssistantBubble({ data }) {
         <span className={styles.difficultyTag}>{data.difficulty}</span>
       </div>
 
-      {video && (
+      {(video || loading.video) && (
         <div className={styles.videoHero}>
-           <video src={`data:${video.mime_type || 'video/mp4'};base64,${video.video_base64}`} controls autoPlay loop />
+           {video ? (
+             <video src={`data:${video.mime_type || 'video/mp4'};base64,${video.video_base64}`} controls autoPlay loop />
+           ) : (
+             <div className={styles.videoPlaceholder}>
+               <div className={styles.videoPlaceholderIcon}>🎬</div>
+               <span>Generating your educational video...</span>
+             </div>
+           )}
         </div>
       )}
 
       <div className={styles.textbookLayout}>
         <div className={styles.explanationCol}>
-          {loadingText ? (
+          {loading.explanation ? (
             <div className={styles.skeleton}>Generating explanation...</div>
           ) : (
             <MarkdownRenderer content={toStr(explanation)} />
@@ -360,8 +396,11 @@ function AssistantBubble({ data }) {
         </aside>
       </div>
 
-      {!loadingText && !status && <CircularProgress status="Complete" />}
-      {loadingText && <CircularProgress status="Generating text..." />}
+      {anyLoading && status ? (
+        <CircularProgress status={status} />
+      ) : (
+        <CircularProgress status="Complete" />
+      )}
 
       {expandedAsset && (
         <div className={styles.modalOverlay} onClick={() => setExpandedAsset(null)}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import mermaid from "mermaid";
 import styles from "./page.module.css";
 import MarkdownRenderer from "./components/MarkdownRenderer";
@@ -33,12 +33,81 @@ function CircularProgress({ status }) {
   );
 }
 
+function Icon({ name }) {
+  const icons = {
+    spark: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" />
+      </svg>
+    ),
+    moon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+      </svg>
+    ),
+    sun: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+      </svg>
+    ),
+    plus: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    ),
+    sliders: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h16" />
+        <circle cx="8" cy="6" r="2" fill="currentColor" />
+        <circle cx="15" cy="12" r="2" fill="currentColor" />
+        <circle cx="11" cy="18" r="2" fill="currentColor" />
+      </svg>
+    ),
+    grid: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="4" y="4" width="6" height="6" rx="1.5" />
+        <rect x="14" y="4" width="6" height="6" rx="1.5" />
+        <rect x="4" y="14" width="6" height="6" rx="1.5" />
+        <rect x="14" y="14" width="6" height="6" rx="1.5" />
+      </svg>
+    ),
+    volume: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M5 9v6h4l5 4V5L9 9H5z" />
+        <path d="M18 9.5a4.5 4.5 0 0 1 0 5" />
+      </svg>
+    ),
+  };
+
+  return <span className={styles.icon}>{icons[name]}</span>;
+}
+
+function AssetToggle({ label, value, onChange }) {
+  const isAuto = value === "auto";
+
+  return (
+    <div className={styles.assetToggleRow}>
+      <span>{label}</span>
+      <button
+        type="button"
+        className={`${styles.switchToggle} ${isAuto ? styles.switchOn : ""}`}
+        onClick={() => onChange(isAuto ? "off" : "auto")}
+        aria-label={`${label} set to ${isAuto ? "auto" : "off"}`}
+      >
+        <span className={styles.switchTrackLabel}>{isAuto ? "Auto" : "Off"}</span>
+        <span className={styles.switchKnob} />
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [difficulty, setDifficulty] = useState("auto");
-  const [generateDiagram, setGenerateDiagram] = useState(true);
-  const [generateImage, setGenerateImage] = useState(true);
-  const [generateVideo, setGenerateVideo] = useState(true);
+  const [generateDiagram, setGenerateDiagram] = useState("off");
+  const [generateImage, setGenerateImage] = useState("off");
+  const [generateVideo, setGenerateVideo] = useState("off");
   
   const [showDifficultyMenu, setShowDifficultyMenu] = useState(false);
   const [showFeaturesMenu, setShowFeaturesMenu] = useState(false);
@@ -62,8 +131,7 @@ export default function Home() {
   // Theme management
   useEffect(() => {
     const saved = localStorage.getItem("theme");
-    if (saved) setTheme(saved);
-    else if (window.matchMedia("(prefers-color-scheme: dark)").matches) setTheme("dark");
+    setTheme(saved || "light");
   }, []);
 
   useEffect(() => {
@@ -114,9 +182,9 @@ export default function Home() {
         body: JSON.stringify({ 
           question: userQ, 
           difficulty,
-          generate_diagram: generateDiagram,
-          generate_image: generateImage,
-          generate_video: generateVideo,
+          generate_diagram: generateDiagram === "auto",
+          generate_image: generateImage === "auto",
+          generate_video: generateVideo === "auto",
           generate_audio: false // Handled via TTS button now
         }),
       });
@@ -127,7 +195,6 @@ export default function Home() {
       const plan = planData.plan;
       
       // Add initial assistant message with placeholders
-      const assistantMsgIdx = conversations.length + 1;
       setConversations(prev => [
         ...prev,
         { 
@@ -157,20 +224,17 @@ export default function Home() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.brand} onClick={() => window.location.reload()} style={{ cursor: "pointer" }}>
-          <div className={styles.brandIcon} aria-hidden="true">✦</div>
+          <div className={styles.brandIcon} aria-hidden="true"><Icon name="spark" /></div>
           <h1 className={styles.brandName}>ClarityLab</h1>
         </div>
         <div className={styles.headerActions}>
           <p className={styles.sessionText}>{sessionLabel}</p>
           <div className={styles.actionGroup}>
             <button className={styles.actionButton} onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme">
-              {theme === "light" ? "🌙" : "☀️"}
-            </button>
-            <button className={`${styles.actionButton} ${styles.desktopOnly}`} title="Settings coming soon" aria-label="Settings coming soon" disabled>
-              ⚙️
+              <Icon name={theme === "light" ? "moon" : "sun"} />
             </button>
             <button className={`${styles.actionButton} ${styles.hideOnMobile}`} onClick={resetSession} title="Start new chat" aria-label="Start new chat">
-              ✚
+              <Icon name="plus" />
             </button>
           </div>
         </div>
@@ -180,7 +244,7 @@ export default function Home() {
         <div className={styles.chatArea}>
           {conversations.length === 0 && (
             <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>✦</div>
+              <div className={styles.emptyIcon}><Icon name="spark" /></div>
               <h2>What's on your mind?</h2>
               <p>Get deep, multimodal explanations with diagrams and video.</p>
               <div className={styles.suggestionsRow}>
@@ -215,8 +279,8 @@ export default function Home() {
               <div className={styles.composerControls}>
                 <div className={styles.dropdown} ref={diffMenuRef}>
                   <button type="button" className={styles.dropdownBtn} onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}>
-                    <span aria-hidden="true">🎚️</span>
-                    <span>{difficulty}</span>
+                    <Icon name="sliders" />
+                    <span>Difficulty: {difficulty}</span>
                   </button>
                   {showDifficultyMenu && (
                     <div className={styles.dropdownMenu}>
@@ -231,14 +295,14 @@ export default function Home() {
 
                 <div className={styles.dropdown} ref={featMenuRef}>
                   <button type="button" className={styles.dropdownBtn} onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}>
-                    <span aria-hidden="true">🧩</span>
+                    <Icon name="grid" />
                     <span>Assets</span>
                   </button>
                   {showFeaturesMenu && (
                     <div className={styles.dropdownMenu}>
-                      <label><input type="checkbox" checked={generateDiagram} onChange={e => setGenerateDiagram(e.target.checked)} /> Diagrams</label>
-                      <label><input type="checkbox" checked={generateImage} onChange={e => setGenerateImage(e.target.checked)} /> Images</label>
-                      <label><input type="checkbox" checked={generateVideo} onChange={e => setGenerateVideo(e.target.checked)} /> Video</label>
+                      <AssetToggle label="Diagrams" value={generateDiagram} onChange={setGenerateDiagram} />
+                      <AssetToggle label="Images" value={generateImage} onChange={setGenerateImage} />
+                      <AssetToggle label="Video" value={generateVideo} onChange={setGenerateVideo} />
                     </div>
                   )}
                 </div>
@@ -277,7 +341,7 @@ function UserBubble({ content }) {
 function ErrorBubble({ message }) {
   return (
     <div className={styles.errorBubble}>
-      <span>⚠ {message}</span>
+      <span>Error: {message}</span>
     </div>
   );
 }
@@ -380,8 +444,8 @@ function AssistantBubble({ data }) {
            {video ? (
              <video src={`data:${video.mime_type || 'video/mp4'};base64,${video.video_base64}`} controls autoPlay loop />
            ) : (
-             <div className={styles.videoPlaceholder}>
-               <div className={styles.videoPlaceholderIcon}>🎬</div>
+              <div className={styles.videoPlaceholder}>
+               <div className={styles.videoPlaceholderIcon}><Icon name="grid" /></div>
                <span>Generating your educational video...</span>
              </div>
            )}
@@ -390,35 +454,39 @@ function AssistantBubble({ data }) {
 
       <div className={styles.textbookLayout}>
         <div className={styles.explanationCol}>
-          {loading.explanation ? (
-            <div className={styles.skeleton}>Generating explanation...</div>
-          ) : (
-            <MarkdownRenderer content={toStr(explanation)} />
-          )}
-          
+          <section className={styles.responseCard}>
+            <h3 className={styles.responseCardTitle}>Explanation</h3>
+            {loading.explanation ? (
+              <div className={styles.skeleton}>Generating explanation...</div>
+            ) : (
+              <MarkdownRenderer content={toStr(explanation)} />
+            )}
+          </section>
+
           {followups && (
-             <div className={styles.followupsSection}>
-                <h4>Dive Deeper</h4>
-                <MarkdownRenderer content={toStr(followups)} />
-             </div>
+            <section className={styles.responseCard}>
+              <h4 className={styles.responseCardTitle}>Dive Deeper</h4>
+              <MarkdownRenderer content={toStr(followups)} />
+            </section>
           )}
-          
+
           <button className={styles.ttsBtn} onClick={speak} disabled={!explanation}>
-            🔊 Read Aloud
+            <Icon name="volume" /> Read Aloud
           </button>
         </div>
 
         <aside className={styles.assetSidebar}>
           {diagram && (
-            <div className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'diagram', data: diagram.text || diagram })}>
+            <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'diagram', data: diagram.text || diagram })}>
               <h5>Visual Representation</h5>
               <DiagramRenderer code={diagram.text || diagram} />
-            </div>
+            </section>
           )}
           {image && (
-            <div className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'image', data: image })}>
+            <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'image', data: image })}>
+              <h5>Illustration</h5>
               <img src={`data:${image.mime_type || 'image/jpeg'};base64,${image.image_base64}`} alt="Illustration" />
-            </div>
+            </section>
           )}
         </aside>
       </div>
@@ -448,7 +516,6 @@ function AssistantBubble({ data }) {
 }
 
 function DiagramRenderer({ code }) {
-  const containerRef = useRef(null);
   const [svg, setSvg] = useState(null);
 
   useEffect(() => {

@@ -20,7 +20,6 @@
 .assetCard,
 .dropdownMenu {
   background: var(--bg-card);
-  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
   border-radius: var(--surface-radius-md);
   box-shadow: var(--surface-shadow-soft);
 }
@@ -29,7 +28,6 @@
 .suggestionBtn,
 .ttsBtn {
   background: color-mix(in srgb, var(--bg-card) 92%, var(--bg-main));
-  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
   border-radius: var(--surface-radius-pill);
   box-shadow: var(--surface-shadow-interactive);
   transition: var(--surface-transition);
@@ -69,9 +67,6 @@
   color: var(--bg-card);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
   box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 28%, transparent);
-  font-weight: 700;
-  font-size: var(--text-lg);
-  line-height: var(--leading-tight);
 }
 
 .brandName {
@@ -159,10 +154,11 @@
 }
 
 .emptyIcon {
-  font-size: 64px;
+  width: 68px;
+  height: 68px;
   color: var(--accent);
   margin-bottom: 24px;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .emptyState h2 {
@@ -255,7 +251,6 @@
 .difficultyTag {
   padding: 4px 10px;
   background: var(--bg-hover);
-  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: var(--text-xs);
   text-transform: uppercase;
@@ -615,7 +610,6 @@
   gap: 14px;
   padding: 14px;
   border-radius: 30px;
-  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   background: color-mix(in srgb, var(--bg-card) 84%, transparent);
   box-shadow: 0 16px 42px color-mix(in srgb, var(--text-primary) 13%, transparent);
   backdrop-filter: blur(14px);
@@ -837,7 +831,6 @@
   top: 20px;
   right: 20px;
   background: var(--bg-hover);
-  border: 1px solid var(--border);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -956,4 +949,113 @@
   .desktopOnly {
     display: none;
   }
+}
+
+.icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.responseCard {
+  background: color-mix(in srgb, var(--bg-card) 94%, transparent);
+  border-radius: 18px;
+  box-shadow: var(--surface-shadow-soft);
+  padding: 18px 20px;
+}
+
+.responseCardTitle {
+  margin: 0 0 12px;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
+}
+
+.errorBubble {
+  background: color-mix(in srgb, #ff4d4f 10%, var(--bg-card));
+  color: #c8292a;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: var(--surface-shadow-soft);
+}
+
+.assetToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.assetToggleRow:hover {
+  background: var(--bg-hover);
+}
+
+.switchToggle {
+  position: relative;
+  width: 72px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-secondary) 35%, var(--bg-hover));
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  transition: background 0.2s ease;
+}
+
+.switchOn {
+  background: color-mix(in srgb, var(--accent) 55%, var(--bg-hover));
+  justify-content: flex-end;
+}
+
+.switchTrackLabel {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.8;
+}
+
+.switchOn .switchTrackLabel {
+  text-align: left;
+}
+
+.switchKnob {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.videoPlaceholderIcon .icon {
+  width: 2.8rem;
+  height: 2.8rem;
+}
+
+.brandIcon .icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.emptyIcon .icon {
+  width: 4rem;
+  height: 4rem;
 }

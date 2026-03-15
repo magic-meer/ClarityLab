@@ -533,10 +533,8 @@ function AssistantBubble({ data }) {
         </aside>
       </div>
 
-      {anyLoading && status ? (
+      {anyLoading && status && (
         <CircularProgress status={status} />
-      ) : (
-        <CircularProgress status="Complete" />
       )}
 
       {expandedAsset && (

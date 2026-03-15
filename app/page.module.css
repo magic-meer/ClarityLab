@@ -1,18 +1,12 @@
 /* ===== Global Layout ===== */
 .container {
-  --surface-radius-sm: var(--radius-md);
-  --surface-radius-md: var(--radius-lg);
-  --surface-radius-pill: var(--radius-pill);
-  --surface-shadow-soft: 0 1px 2px color-mix(in srgb, var(--text-primary) 9%, transparent), 0 10px 24px color-mix(in srgb, var(--text-primary) 6%, transparent);
-  --surface-shadow-elevated: 0 4px 10px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 16px 32px color-mix(in srgb, var(--text-primary) 8%, transparent);
-  --surface-shadow-interactive: 0 1px 2px color-mix(in srgb, var(--text-primary) 10%, transparent), 0 8px 16px color-mix(in srgb, var(--text-primary) 7%, transparent);
-  --surface-transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.24s ease, transform 0.18s ease, opacity 0.18s ease;
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: var(--bg-main);
   font-family: var(--font);
   color: var(--text-primary);
+  transition: background var(--transition);
 }
 
 /* ===== Shared Surface Primitives ===== */
@@ -34,47 +28,42 @@
 }
 
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 40;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 24px;
-  background: color-mix(in srgb, var(--bg-card) 84%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--text-primary) 8%, transparent);
+  background: transparent;
+  z-index: 50;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
+  gap: 10px;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+
+.brand:hover {
+  opacity: 0.8;
 }
 
 .brandIcon {
-  width: 34px;
-  height: 34px;
-  background: color-mix(in srgb, var(--accent) 82%, var(--bg-card));
-  border-radius: 11px;
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--bg-card);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .brandName {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 500;
   margin: 0;
-  font-size: clamp(var(--text-md), 1.4vw, var(--text-lg));
-  font-weight: 680;
-  letter-spacing: var(--tracking-tight);
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .headerActions {
@@ -147,32 +136,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
   text-align: center;
-  max-width: 600px;
+  width: 100%;
+  max-width: 800px;
   margin: 0 auto;
+  gap: 32px;
 }
 
 .emptyIcon {
-  width: 68px;
-  height: 68px;
+  font-size: 2.5rem;
   color: var(--accent);
-  margin-bottom: 24px;
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
-.emptyState h2 {
+.welcomeTitle {
+  font-family: var(--font-serif);
   font-size: var(--text-display);
-  font-weight: 700;
-  margin-bottom: 16px;
-  letter-spacing: var(--tracking-tight);
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0;
 }
 
-.emptyState p {
+.welcomeSubTitle {
   font-size: var(--text-lg);
-  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+  color: var(--text-secondary);
+  max-width: 500px;
+  margin: -16px 0 0;
   line-height: var(--leading-relaxed);
-  margin-bottom: 32px;
 }
 
 .suggestionsRow {
@@ -183,11 +173,21 @@
 }
 
 .suggestionBtn {
-  padding: 10px 20px;
+  padding: 8px 18px;
   cursor: pointer;
   font-size: var(--text-sm);
-  font-weight: 560;
-  line-height: var(--leading-snug);
+  font-weight: 500;
+  border-radius: var(--radius-pill);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.suggestionBtn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
 }
 
 .suggestionBtn:hover {
@@ -215,15 +215,13 @@
 }
 
 .userBubble {
-  padding: 12px 20px;
-  border-radius: var(--surface-radius-md);
-  max-width: 80%;
-  border-top-right-radius: var(--surface-radius-sm);
-}
-
-.userBubble p {
-  margin: 0;
+  padding: 12px 24px;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  max-width: 85%;
   font-size: var(--text-md);
+  color: var(--text-primary);
   line-height: var(--leading-normal);
 }
 
@@ -242,9 +240,10 @@
 }
 
 .topicTitle {
+  font-family: var(--font-serif);
   font-size: var(--text-xl);
-  font-weight: 700;
-  letter-spacing: var(--tracking-tight);
+  font-weight: 500;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -315,7 +314,7 @@
   gap: 20px;
   font-size: var(--text-md);
   line-height: var(--leading-relaxed);
-  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+  color: var(--text-primary);
 }
 
 .explanationCol > * {
@@ -587,17 +586,25 @@
 
 /* ===== Input Area ===== */
 .inputContainer {
-  position: sticky;
-  bottom: 0;
-  z-index: 20;
-  padding: 0 20px 24px;
-  background: linear-gradient(to top, color-mix(in srgb, var(--bg-main) 94%, transparent) 72%, transparent);
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 840px;
+  padding: 0 20px;
+  z-index: 100;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.inputCentered {
+  bottom: 45%;
+  transform: translate(-50%, 50%);
+  max-width: 720px;
 }
 
 .inputArea {
   width: 100%;
-  max-width: 920px;
-  margin: 0 auto;
 }
 
 .dropdown {
@@ -607,19 +614,18 @@
 .inputWrapper {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 30px;
-  background: color-mix(in srgb, var(--bg-card) 84%, transparent);
-  box-shadow: 0 16px 42px color-mix(in srgb, var(--text-primary) 13%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--text-primary) 5%, transparent);
+  transition: all var(--transition);
 }
 
 .inputWrapper:focus-within {
-  border-color: color-mix(in srgb, var(--accent) 68%, var(--border));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent), 0 18px 40px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  border-color: var(--border-focus);
+  box-shadow: 0 12px 48px color-mix(in srgb, var(--text-primary) 8%, transparent);
 }
 
 .composerControls {
@@ -630,15 +636,25 @@
 }
 
 .dropdownBtn {
-  padding: 8px 13px;
+  padding: 8px 14px;
   font-size: var(--text-sm);
-  font-weight: 560;
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
   line-height: var(--leading-tight);
+  transition: all var(--transition);
+}
+
+.dropdownBtn:hover {
+  background: var(--bg-main);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
 }
 
 .dropdownBtn:hover {
@@ -655,15 +671,19 @@
 
 .dropdownMenu {
   position: absolute;
-  bottom: calc(100% + 10px);
+  bottom: calc(100% + 12px);
   left: 0;
   padding: 8px;
-  min-width: 180px;
-  box-shadow: var(--surface-shadow-elevated);
+  min-width: 200px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 10%, transparent);
   display: flex;
   flex-direction: column;
   gap: 4px;
-  z-index: 30;
+  z-index: 150;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .dropdownMenu button {
@@ -720,32 +740,34 @@
   opacity: 0.6;
 }
 
+.mainInitial {
+  justify-content: center;
+}
+
 .sendBtn {
-  width: 48px;
-  height: 48px;
-  background: color-mix(in srgb, var(--accent) 94%, var(--bg-card));
-  color: white;
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
-  border-radius: var(--surface-radius-md);
-  box-shadow: var(--surface-shadow-interactive);
+  width: 44px;
+  height: 44px;
+  align-self: center;
+  background: var(--text-primary);
+  color: var(--bg-main);
+  border: none;
+  border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: var(--text-lg);
-  transition: var(--surface-transition);
+  font-size: 1.2rem;
+  transition: all var(--transition);
 }
 
 .sendBtn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: var(--accent-hover);
-  box-shadow: var(--surface-shadow-elevated);
+  opacity: 0.9;
+  transform: scale(1.05);
 }
 
 .sendBtn:disabled {
-  opacity: 0.45;
+  opacity: 0.2;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 /* ===== Buttons ===== */
@@ -992,57 +1014,49 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
 }
 
 .assetToggleRow:hover {
   background: var(--bg-hover);
 }
 
-.switchToggle {
-  position: relative;
-  width: 72px;
-  height: 32px;
-  border: none;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-secondary) 35%, var(--bg-hover));
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 0 8px;
-  display: inline-flex;
+.assetToggleRowActive {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.checkbox {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border-focus);
+  border-radius: 6px;
+  background: var(--bg-sidebar);
+  display: flex;
   align-items: center;
-  justify-content: flex-start;
-  transition: background 0.2s ease;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--transition);
+  color: white;
+  font-size: 14px;
 }
 
-.switchOn {
-  background: color-mix(in srgb, var(--accent) 55%, var(--bg-hover));
-  justify-content: flex-end;
+.checkboxChecked {
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
-.switchTrackLabel {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  opacity: 0.8;
-}
-
-.switchOn .switchTrackLabel {
-  text-align: left;
-}
-
-.switchKnob {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: white;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+.checkIcon {
+  font-weight: bold;
 }
 
 .videoPlaceholderIcon .icon {

@@ -451,27 +451,42 @@ function AssistantBubble({ data }) {
   }, [prompts]);
 
   const speak = () => {
+    if (!window.speechSynthesis) {
+      alert("Text-to-speech is not supported in your browser.");
+      return;
+    }
+
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       return;
     }
 
+    // Use global toStr which handles multiple key patterns (text, content, etc.)
     const text = stripMarkdown(toStr(explanation));
-    if (!text) return;
+    if (!text.trim()) return;
 
-    window.speechSynthesis.cancel(); // Clear queue
-    const utterance = new SpeechSynthesisUtterance(text);
+    window.speechSynthesis.cancel(); 
     
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Select a natural voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.name.includes("Google") || v.name.includes("Natural"));
+      if (preferred) utterance.voice = preferred;
 
-    window.speechSynthesis.speak(utterance);
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = (e) => {
+        console.error("SpeechSynthesis error:", e);
+        setIsSpeaking(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
+      setIsSpeaking(true);
+    }, 50);
   };
-
-  const toStr = (val) => typeof val === 'string' ? val : (val?.text || "");
-
   const anyLoading = Object.values(loading).some(v => v);
 
   return (

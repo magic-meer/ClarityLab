@@ -21,6 +21,22 @@ function toStr(value) {
 }
 
 /**
+ * Strips markdown syntax to make text cleaner for TTS.
+ */
+function stripMarkdown(text) {
+  if (!text) return "";
+  return text
+    .replace(/#+\s+/g, "") // Headers
+    .replace(/\*\*/g, "")  // Bold
+    .replace(/\*/g, "")    // Italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Links
+    .replace(/`{1,3}[^`]*`{1,3}/g, "") // Code blocks
+    .replace(/[-*+]\s+/g, "") // List items
+    .replace(/\n+/g, " "); // Newlines to spaces
+}
+
+
+/**
  * Circular progress indicator that shows current step status.
  */
 function CircularProgress({ status }) {
@@ -130,12 +146,21 @@ export default function Home() {
   // Theme management
   useEffect(() => {
     const saved = localStorage.getItem("theme");
-    setTheme(saved || "light");
+    if (saved) {
+      setTheme(saved);
+    } else {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setTheme(prefersDark ? "dark" : "light");
+    }
   }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
+    // Explicitly check if user has manually set a theme before saving
+    // This allows us to potentially clear localStorage later to go back to system sync
+    if (localStorage.getItem("theme") || theme !== "light") {
+       localStorage.setItem("theme", theme);
+    }
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === "light" ? "dark" : "light");
@@ -239,8 +264,8 @@ export default function Home() {
         </div>
       </header>
 
-      <main className={`${styles.main} ${!hasConversation ? styles.mainInitial : ""}`}>
-        <div className={styles.chatArea}>
+      <main className={styles.main}>
+        <div className={`${styles.layoutWrapper} ${!hasConversation ? styles.heroMode : styles.chatMode}`}>
           {!hasConversation && (
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}><Icon name="spark" /></div>
@@ -256,73 +281,76 @@ export default function Home() {
             </div>
           )}
 
-          {conversations.map((msg, i) => (
-            <div key={i} className={`${styles.message} ${msg.role === "user" ? styles.userMessage : styles.assistantMessage} fade-in`}>
-              {msg.role === "user" ? (
-                <UserBubble content={msg.content} />
-              ) : msg.error ? (
-                <ErrorBubble message={msg.error} />
-              ) : (
-                <AssistantBubble data={msg} />
-              )}
-            </div>
-          ))}
-          
-          {statusMessage && <CircularProgress status={statusMessage} />}
-          <div ref={chatEndRef} />
-        </div>
-
-        <div className={`${styles.inputContainer} ${!hasConversation ? styles.inputCentered : ""}`}>
-          <form className={styles.inputArea} onSubmit={handleSubmit}>
-            <div className={styles.inputWrapper}>
-              <div className={styles.composerControls}>
-                <div className={styles.dropdown} ref={diffMenuRef}>
-                  <button type="button" className={styles.dropdownBtn} onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}>
-                    <Icon name="sliders" />
-                    <span>Difficulty: {difficulty}</span>
-                  </button>
-                  {showDifficultyMenu && (
-                    <div className={styles.dropdownMenu}>
-                      {['beginner', 'intermediate', 'advanced', 'expert', 'auto'].map(lvl => (
-                        <button key={lvl} type="button" onClick={() => { setDifficulty(lvl); setShowDifficultyMenu(false); }}>
-                          {lvl}
-                        </button>
-                      ))}
-                    </div>
+          {hasConversation && (
+            <div className={styles.chatArea}>
+              {conversations.map((msg, i) => (
+                <div key={i} className={`${styles.message} ${msg.role === "user" ? styles.userMessage : styles.assistantMessage} fade-in`}>
+                  {msg.role === "user" ? (
+                    <UserBubble content={msg.content} />
+                  ) : msg.error ? (
+                    <ErrorBubble message={msg.error} />
+                  ) : (
+                    <AssistantBubble data={msg} />
                   )}
                 </div>
+              ))}
+              {statusMessage && <CircularProgress status={statusMessage} />}
+              <div ref={chatEndRef} />
+            </div>
+          )}
 
-                <div className={styles.dropdown} ref={featMenuRef}>
-                  <button type="button" className={styles.dropdownBtn} onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}>
-                    <Icon name="grid" />
-                    <span>Assets</span>
+          <div className={`${styles.inputContainer} ${!hasConversation ? styles.inputHero : ""}`}>
+            <form className={styles.inputArea} onSubmit={handleSubmit}>
+              <div className={styles.inputWrapper}>
+                <div className={styles.composerControls}>
+                  <div className={styles.dropdown} ref={diffMenuRef}>
+                    <button type="button" className={styles.dropdownBtn} onClick={() => setShowDifficultyMenu(!showDifficultyMenu)}>
+                      <Icon name="sliders" />
+                      <span>Difficulty: {difficulty}</span>
+                    </button>
+                    {showDifficultyMenu && (
+                      <div className={styles.dropdownMenu}>
+                        {['beginner', 'intermediate', 'advanced', 'expert', 'auto'].map(lvl => (
+                          <button key={lvl} type="button" onClick={() => { setDifficulty(lvl); setShowDifficultyMenu(false); }}>
+                            {lvl}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.dropdown} ref={featMenuRef}>
+                    <button type="button" className={styles.dropdownBtn} onClick={() => setShowFeaturesMenu(!showFeaturesMenu)}>
+                      <Icon name="grid" />
+                      <span>Assets</span>
+                    </button>
+                    {showFeaturesMenu && (
+                      <div className={styles.dropdownMenu}>
+                        <AssetToggle label="Diagrams" value={generateDiagram} onChange={setGenerateDiagram} />
+                        <AssetToggle label="Images" value={generateImage} onChange={setGenerateImage} />
+                        <AssetToggle label="Video" value={generateVideo} onChange={setGenerateVideo} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.textInputRow}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    className={styles.input}
+                    placeholder="Explain..."
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    disabled={loading}
+                  />
+                  <button type="submit" className={styles.sendBtn} disabled={loading || !question.trim()}>
+                    {loading ? "..." : "→"}
                   </button>
-                  {showFeaturesMenu && (
-                    <div className={styles.dropdownMenu}>
-                      <AssetToggle label="Diagrams" value={generateDiagram} onChange={setGenerateDiagram} />
-                      <AssetToggle label="Images" value={generateImage} onChange={setGenerateImage} />
-                      <AssetToggle label="Video" value={generateVideo} onChange={setGenerateVideo} />
-                    </div>
-                  )}
                 </div>
               </div>
-
-              <div className={styles.textInputRow}>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  className={styles.input}
-                  placeholder="Explain..."
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  disabled={loading}
-                />
-                <button type="submit" className={styles.sendBtn} disabled={loading || !question.trim()}>
-                  {loading ? "..." : "→"}
-                </button>
-              </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </main>
     </div>
@@ -351,6 +379,7 @@ function AssistantBubble({ data }) {
   const [image, setImage] = useState(null);
   const [video, setVideo] = useState(null);
   const [followups, setFollowups] = useState(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const prompts = data.prompts;
 
   const [loading, setLoading] = useState({
@@ -422,8 +451,22 @@ function AssistantBubble({ data }) {
   }, [prompts]);
 
   const speak = () => {
-    const text = toStr(explanation);
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const text = stripMarkdown(toStr(explanation));
+    if (!text) return;
+
+    window.speechSynthesis.cancel(); // Clear queue
     const utterance = new SpeechSynthesisUtterance(text);
+    
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
     window.speechSynthesis.speak(utterance);
   };
 
@@ -469,8 +512,8 @@ function AssistantBubble({ data }) {
             </section>
           )}
 
-          <button className={styles.ttsBtn} onClick={speak} disabled={!explanation}>
-            <Icon name="volume" /> Read Aloud
+          <button className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""}`} onClick={speak} disabled={!explanation}>
+            <Icon name={isSpeaking ? "moon" : "volume"} /> {isSpeaking ? "Stop Reading" : "Read Aloud"}
           </button>
         </div>
 
@@ -490,10 +533,8 @@ function AssistantBubble({ data }) {
         </aside>
       </div>
 
-      {anyLoading && status ? (
+      {anyLoading && status && (
         <CircularProgress status={status} />
-      ) : (
-        <CircularProgress status="Complete" />
       )}
 
       {expandedAsset && (
@@ -515,44 +556,103 @@ function AssistantBubble({ data }) {
 }
 
 function DiagramRenderer({ code }) {
-  const [svg, setSvg] = useState(null);
+  const [svg, setSvg] = useState("");
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!code) return;
-    const render = async () => {
-      try {
-        const cleanCode = code.replace(/```mermaid\n?|```/g, "").trim();
-        
-        // Robust mermaid extraction: look for start keywords
-        const mermaidKeywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline)/i;
-        
-        let finalCode = cleanCode;
-        if (!mermaidKeywords.test(cleanCode)) {
-           // Try to find the block if there's leading text
-           const lines = cleanCode.split('\n');
-           const startIndex = lines.findIndex(line => mermaidKeywords.test(line.trim()));
-           if (startIndex !== -1) {
-             finalCode = lines.slice(startIndex).join('\n');
-           }
+    setError(false);
+    const sanitizeMermaid = (raw) => {
+      // 1. Remove markers and normalize redundant quotes
+      let sanitized = raw.replace(/```mermaid\n?|```/g, "").trim();
+      sanitized = sanitized.replace(/""+/g, '"'); 
+
+      // 2. Detect type and ensure it starts with a valid keyword
+      const lines = sanitized.split('\n');
+      const keywords = /^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|journey|gantt|pie|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|mindmap|timeline|xychart-beta)/i;
+      const startIndex = lines.findIndex(l => keywords.test(l.trim()));
+      if (startIndex !== -1) {
+        sanitized = lines.slice(startIndex).join('\n');
+      }
+
+      const isFlowchart = /^(graph|flowchart)\b/i.test(sanitized.trim());
+      if (!isFlowchart) return sanitized;
+
+      // 3. Fix unquoted labels and strip trailing noise line-by-line
+      const processedLines = sanitized.split('\n').map(line => {
+        let l = line.trim();
+        if (!l || /^(state|class|subgraph|end|note|style|direction|title|accTitle|accDescr|x-axis|y-axis|line|bar|tickInterval|data|min|max)\b/i.test(l)) {
+          return line;
         }
 
-        // If it's already an SVG, just set it
+        // Segment-based normalization: split by connection markers (arrows + optional labels)
+        const connRegex = /(\s*(?:-->|---|--|==>|-.->|--\x3E)(?:\|[^|]+\|)?\s*|\s*--\s+"[^"]+"\s*(?:-->|---|--|==>|-.->|--\x3E)\s*)/;
+        const segments = l.split(connRegex); 
+        const normalized = segments.map(seg => {
+            if (!seg || connRegex.test(seg)) return seg;
+            
+            // Normalize node: ID["Label"] or just ID
+            return seg.replace(/(\w+)(?:\[|\(|\{\{|\(\()(.*?)(?:\]|\)|\}\}|\)\))/g, (m, id, label) => {
+                const cleanLabel = label.replace(/[()\[\]{}'"]/g, " ").trim();
+                return `${id}["${cleanLabel}"]`;
+            });
+        });
+
+        return normalized.join('').replace(/%%.*$/, "").trim();
+      });
+
+      return processedLines.join('\n');
+    };
+
+    const render = async () => {
+      let finalCode = code;
+      try {
+        finalCode = sanitizeMermaid(code);
+        
         if (finalCode.includes('<svg') && finalCode.includes('</svg>')) {
           setSvg(finalCode);
           return;
         }
 
-        // Otherwise try to render as mermaid
-        const { svg } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, finalCode);
-        setSvg(svg);
+        const { svg: svgResult } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, finalCode);
+        setSvg(svgResult);
       } catch (e) { 
-        console.error("Diagram render error:", e);
-        // Fallback: If it looks like text but failed mermaid, maybe it's raw text?
-        // For now, just show the error in the console.
+        console.warn("Mermaid first attempt failed, trying aggressive sanitize:", e);
+        try {
+          const isFlow = /^(graph|flowchart)\b/i.test(finalCode.trim());
+          if (!isFlow) throw e;
+
+          // Strip ALL illegal structural chars and normalize to standard nodes
+          const aggressive = finalCode.split('\n').map(line => {
+             let l = line.trim();
+             if (/^(graph|flowchart|subgraph|end|direction|style)\b/i.test(l)) return line;
+             
+             // Strip all () and {} from labels and convert to [""]
+             // Ensure we don't double-wrap or leave artifacts
+             return l.replace(/(\w+)(?:\[|\(|\{\{|\(\()?(.*?)(?:\]|\)|\}\}|\)\))?/g, (m, id, content) => {
+                if (!content) return m; // Not a node definition
+                const clean = content.replace(/[()\[\]{}'"]/g, " ").trim();
+                return `${id}["${clean}"]`;
+             });
+          }).join('\n');
+          
+          const { svg: svg2 } = await mermaid.render(`id-${Math.random().toString(36).substr(2,9)}`, aggressive);
+          setSvg(svg2);
+        } catch (e2) {
+          console.error("Diagram render error (all attempts):", e2);
+          setError(true);
+        }
       }
     };
     render();
   }, [code]);
 
-  return svg ? <div dangerouslySetInnerHTML={{ __html: svg }} /> : <div>Loading diagram...</div>;
+  if (error || (!svg && !code)) return null;
+
+  return (
+    <div 
+      className={styles.diagramWrapper}
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
 }

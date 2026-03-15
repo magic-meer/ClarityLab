@@ -149,11 +149,11 @@ DIAGRAM GUIDELINES (IMPORTANT):
 - For Mermaid diagrams, use ONLY valid syntax:
   - Flowcharts: graph TD/LR, node shapes (A[Rectangle], B(Rounded), C(Diamond))
   - Use --> for arrows, --- for lines
-  - Labels go in double quotes: A["Label"]
-  - Subgraphs: subgraph name...endsubgraph
-- Test your mermaid code mentally before outputting
-- Common errors to avoid: missing quotes, invalid shapes, unclosed brackets
-- If unsure about syntax, set diagram_type to null"""
+  - CRITICAL: EVERY label MUST be in double quotes: A["Label Text"]
+  - CRITICAL: NO nested parentheses in labels unless using double quotes. Even then, avoid () if possible. Use [] or dashes.
+  - Subgraphs: subgraph name...end (NOT endsubgraph)
+- If unsure about syntax, set diagram_type to null
+"""
     else:
         diagram_instruction = """
 - diagram_type: MUST be null (user disabled)"""
@@ -380,11 +380,13 @@ def build_step_diagram_prompt(question: str, explanation: str) -> str:
 Based on this explanation:
 {explanation[:500]}...
 
-Output ONLY raw Mermaid diagram code (like: graph TD A --> B).
+Output ONLY raw Mermaid diagram code (like: graph TD A["Start"] --> B["End"]).
+CRITICAL: Every label MUST be in double quotes (e.g., A["My Label"]).
+CRITICAL: Do not use parentheses () inside labels as they break Mermaid syntax. Use dashes or brackets instead.
 NO markdown code blocks, NO ``` fences, NO explanations.
 Just the raw mermaid code.
-
-If a diagram would not help explain this topic, output: null"""
+If a diagram would not help explain this topic, output: null
+"""
 
 
 def build_step_image_prompt(question: str, explanation: str) -> str:

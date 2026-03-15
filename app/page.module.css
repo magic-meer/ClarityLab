@@ -139,8 +139,7 @@
   text-align: center;
   width: 100%;
   max-width: 800px;
-  margin: 0 auto;
-  gap: 32px;
+  gap: 24px;
 }
 
 .emptyIcon {
@@ -584,24 +583,47 @@
   font-weight: 560;
 }
 
-/* ===== Input Area ===== */
+.layoutWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroMode {
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  gap: 32px;
+}
+
+.chatMode {
+  justify-content: flex-start;
+}
+
 .inputContainer {
-  position: absolute;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
   width: 100%;
   max-width: 840px;
-  padding: 0 20px;
+  padding: 20px;
   z-index: 100;
   transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.inputCentered {
-  bottom: 45%;
-  transform: translate(-50%, 50%);
+.heroMode .inputContainer {
   max-width: 720px;
+  padding: 0;
 }
+
+.chatMode .inputContainer {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+
 
 .inputArea {
   width: 100%;
@@ -740,9 +762,7 @@
   opacity: 0.6;
 }
 
-.mainInitial {
-  justify-content: center;
-}
+
 
 .sendBtn {
   width: 44px;

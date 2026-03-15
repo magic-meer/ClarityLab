@@ -48,6 +48,11 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [theme, setTheme] = useState("light");
   const [statusMessage, setStatusMessage] = useState(null);
+
+  const hasConversation = conversations.length > 0;
+  const sessionLabel = hasConversation
+    ? `Session • ${conversations.length} message${conversations.length === 1 ? "" : "s"}`
+    : "New session";
   
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -67,6 +72,13 @@ export default function Home() {
   }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === "light" ? "dark" : "light");
+  const resetSession = () => {
+    setConversations([]);
+    setError(null);
+    setStatusMessage(null);
+    setQuestion("");
+    inputRef.current?.focus();
+  };
 
   // Auto-scroll
   useEffect(() => {
@@ -144,13 +156,24 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.brand} onClick={() => window.location.reload()} style={{cursor: 'pointer'}}>
-          <div className={styles.brandIcon}>✦</div>
+        <div className={styles.brand} onClick={() => window.location.reload()} style={{ cursor: "pointer" }}>
+          <div className={styles.brandIcon} aria-hidden="true">✦</div>
           <h1 className={styles.brandName}>ClarityLab</h1>
         </div>
-        <button className={styles.themeToggle} onClick={toggleTheme} title="Toggle theme">
-          {theme === "light" ? "🌙" : "☀️"}
-        </button>
+        <div className={styles.headerActions}>
+          <p className={styles.sessionText}>{sessionLabel}</p>
+          <div className={styles.actionGroup}>
+            <button className={styles.actionButton} onClick={toggleTheme} title="Toggle theme" aria-label="Toggle theme">
+              {theme === "light" ? "🌙" : "☀️"}
+            </button>
+            <button className={`${styles.actionButton} ${styles.desktopOnly}`} title="Settings coming soon" aria-label="Settings coming soon" disabled>
+              ⚙️
+            </button>
+            <button className={`${styles.actionButton} ${styles.hideOnMobile}`} onClick={resetSession} title="Start new chat" aria-label="Start new chat">
+              ✚
+            </button>
+          </div>
+        </div>
       </header>
 
       <main className={styles.main}>

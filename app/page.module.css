@@ -43,15 +43,15 @@
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
   box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 28%, transparent);
   font-weight: 700;
-  font-size: 17px;
-  line-height: 1;
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
 }
 
 .brandName {
   margin: 0;
-  font-size: clamp(1.06rem, 1.4vw, 1.2rem);
+  font-size: clamp(var(--text-md), 1.4vw, var(--text-lg));
   font-weight: 680;
-  letter-spacing: -0.015em;
+  letter-spacing: var(--tracking-tight);
   color: var(--text-primary);
 }
 
@@ -63,9 +63,9 @@
 
 .sessionText {
   margin: 0;
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  color: color-mix(in srgb, var(--text-primary) 68%, transparent);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-wide);
+  color: color-mix(in srgb, var(--text-primary) 62%, transparent);
   white-space: nowrap;
 }
 
@@ -85,7 +85,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: var(--text-md);
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
@@ -139,16 +139,16 @@
 }
 
 .emptyState h2 {
-  font-size: 32px;
+  font-size: var(--text-display);
   font-weight: 700;
   margin-bottom: 16px;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--tracking-tight);
 }
 
 .emptyState p {
-  font-size: 18px;
-  color: var(--text-secondary);
-  line-height: 1.6;
+  font-size: var(--text-lg);
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+  line-height: var(--leading-relaxed);
   margin-bottom: 32px;
 }
 
@@ -166,7 +166,9 @@
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 14px;
+  font-size: var(--text-sm);
+  font-weight: 560;
+  line-height: var(--leading-snug);
 }
 
 .suggestionBtn:hover {
@@ -198,8 +200,8 @@
 
 .userBubble p {
   margin: 0;
-  font-size: 16px;
-  line-height: 1.5;
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
 }
 
 /* ===== Assistant Content (Textbook Layout) ===== */
@@ -217,9 +219,9 @@
 }
 
 .topicTitle {
-  font-size: 28px;
+  font-size: var(--text-xl);
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: var(--tracking-tight);
   margin: 0;
 }
 
@@ -228,10 +230,10 @@
   background: var(--bg-hover);
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 650;
+  letter-spacing: var(--tracking-caps);
 }
 
 .videoHero {
@@ -289,13 +291,46 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  font-size: 17px;
-  line-height: 1.8;
-  color: var(--text-secondary);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
 }
 
-.explanationCol h1, .explanationCol h2 {
+.explanationCol > * {
+  margin: 0;
+}
+
+.explanationCol p + p {
+  margin-top: 0.95em;
+}
+
+.explanationCol h1,
+.explanationCol h2,
+.explanationCol h3 {
   color: var(--text-primary);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+}
+
+.explanationCol h1 {
+  font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+  margin-top: 0.35em;
+}
+
+.explanationCol h2 {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  margin-top: 0.4em;
+}
+
+.explanationCol h3 {
+  font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+  margin-top: 0.45em;
+}
+
+.explanationCol h1 + p,
+.explanationCol h2 + p,
+.explanationCol h3 + p {
+  margin-top: 0.5em;
 }
 
 .assetSidebar {
@@ -326,10 +361,10 @@
 .assetCard h5 {
   margin-top: 0;
   margin-bottom: 12px;
-  font-size: 13px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
-  color: var(--text-secondary);
-  letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
+  letter-spacing: var(--tracking-caps);
 }
 
 .assetCard img {
@@ -370,9 +405,9 @@
 }
 
 .statusText {
-  font-size: 14px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  font-size: var(--text-sm);
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary));
+  font-weight: 560;
 }
 
 /* ===== Input Area ===== */
@@ -425,13 +460,14 @@
   border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
   padding: 8px 13px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: var(--text-sm);
+  font-weight: 560;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   color: var(--text-primary);
-  line-height: 1;
+  line-height: var(--leading-tight);
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
@@ -463,7 +499,7 @@
   text-align: left;
   cursor: pointer;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--text-primary);
 }
 
@@ -477,7 +513,7 @@
   gap: 10px;
   padding: 9px 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-sm);
   border-radius: 8px;
 }
 
@@ -497,7 +533,7 @@
   background: transparent;
   border: none;
   outline: none;
-  font-size: 16px;
+  font-size: var(--text-md);
   color: var(--text-primary);
   padding: 10px 4px;
 }
@@ -521,7 +557,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 20px;
+  font-size: var(--text-lg);
   transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
 }
 
@@ -542,7 +578,9 @@
   border: 1px solid var(--border);
   padding: 8px 16px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--text-sm);
+  font-weight: 560;
+  line-height: var(--leading-snug);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -672,7 +710,7 @@
 
   .dropdownBtn {
     padding: 7px 11px;
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
 
   .sendBtn {
@@ -709,8 +747,8 @@
   }
 
   .brandName {
-    font-size: 1rem;
-    letter-spacing: -0.01em;
+    font-size: var(--text-md);
+    letter-spacing: var(--tracking-tight);
   }
 
   .headerActions {

@@ -186,6 +186,8 @@ async def explain_concept(request: ExplanationRequest) -> dict:
         # Use ExplanationGenerator to get structured response
         generator = ExplanationGenerator()
 
+        import time
+        start_time_proc = time.time()
         result = await generator.generate_explanation(
             question=question,
             model_name=request.model_name,
@@ -195,6 +197,8 @@ async def explain_concept(request: ExplanationRequest) -> dict:
             generate_audio=request.generate_audio,
             generate_video=request.generate_video,
         )
+        duration = time.time() - start_time_proc
+        logger.info(f"Explanation generation finished in {duration:.2f}s")
 
         if result.get("status") != "success":
             logger.error(f"Generation failed: {result.get('message') or result.get('error')}")
@@ -489,25 +493,33 @@ async def generate_plan(request: ExplanationRequest) -> dict:
 @router.post("/generate-video")
 async def generate_video(request: AssetGenerationRequest) -> dict:
     """Generate a video from a prompt."""
+    import time
+    start = time.time()
     try:
+        logger.info(f"Video generation request for prompt: {str(request.prompt)[:100]}...")
         client = get_gemini_client()
         result = await client.generate_video(prompt=request.prompt, model_name=request.model_name)
+        logger.info(f"Video generation route SUCCESS in {time.time() - start:.2f}s")
         return {"status": "success", "data": result}
     except Exception as e:
-        logger.error(f"Video generation failed: {e}")
+        logger.error(f"Video generation ROUTE-level failure after {time.time() - start:.2f}s: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/generate-explanation")
 async def generate_text_explanation(request: AssetGenerationRequest) -> dict:
     """Generate the main text explanation."""
+    import time
+    start = time.time()
     try:
+        logger.info(f"Text explanation request for prompt: {str(request.prompt)[:100]}...")
         client = get_gemini_client()
         # For text, we expect JSON-ish or Markdown from the specialized prompt
         result = await client.generate_content(prompt=request.prompt, model_name=request.model_name)
+        logger.info(f"Text explanation route SUCCESS in {time.time() - start:.2f}s")
         return {"status": "success", "data": result}
     except Exception as e:
-        logger.error(f"Text generation failed: {e}")
+        logger.error(f"Text generation ROUTE-level failure after {time.time() - start:.2f}s: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

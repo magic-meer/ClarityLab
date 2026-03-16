@@ -15,8 +15,8 @@ from utils.exceptions import GeminiAPIError
 logger = logging.getLogger(__name__)
 
 DEFAULT_IMAGE_MODEL = "publishers/google/models/imagen-3.0-generate-002"
-DEFAULT_DIAGRAM_IMAGE_MODEL = "publishers/google/models/imagen-4.0-ultra-generate-001"
-DEFAULT_VIDEO_MODEL = "publishers/google/models/veo-3.1-generate-001"
+DEFAULT_DIAGRAM_IMAGE_MODEL = "publishers/google/models/imagen-3.0-generate-002"
+DEFAULT_VIDEO_MODEL = "publishers/google/models/veo-2.0-generate-001"
 
 
 class GeminiClient:
@@ -72,9 +72,13 @@ class GeminiClient:
             )
 
             # Use await for the async call via the .aio property
+            import time
+            start = time.time()
             response = await self.client.aio.models.generate_content(
                 model=model, contents=prompt, config=config
             )
+            duration = time.time() - start
+            logger.info(f"Text generation completed in {duration:.2f}s using {model}")
 
             result = {
                 "text": response.text,
@@ -126,6 +130,8 @@ class GeminiClient:
 
             logger.debug(f"Sending image analyze request using model: {model}")
 
+            import time
+            start = time.time()
             response = await self.client.aio.models.generate_content(
                 model=model,
                 contents=[img, prompt],
@@ -133,6 +139,8 @@ class GeminiClient:
                     temperature=0.2,
                 ),
             )
+            duration = time.time() - start
+            logger.info(f"Image analysis completed in {duration:.2f}s using {model}")
 
             result = {
                 "text": response.text,
@@ -223,12 +231,22 @@ class GeminiClient:
                 
                 # Poll synchronously within the thread
                 start_time = time.time()
+                poll_count = 0
                 while not operation.done:
-                    if time.time() - start_time > 600: # 10 min timeout
+                    poll_count += 1
+                    elapsed = time.time() - start_time
+                    if elapsed > 600: # 10 min timeout
+                        logger.error(f"Video generation TIMEOUT after {elapsed:.1f}s")
                         raise TimeoutError("Video generation timed out")
+                    
+                    if poll_count % 3 == 0: # Log every ~30s
+                        logger.info(f"Still waiting for video {operation.name}... ({elapsed:.1f}s elapsed)")
+                    
                     time.sleep(10)
                     operation = self.sync_client.operations.get(operation)
                 
+                final_duration = time.time() - start_time
+                logger.info(f"Video operation {operation.name} FINISHED in {final_duration:.2f}s")
                 return operation.response
 
             # Run the synchronous polling in a separate thread

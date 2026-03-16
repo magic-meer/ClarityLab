@@ -43,25 +43,44 @@ ClarityLab consists of a **Next.js 15 frontend** that communicates with a **Fast
 ### High-Level Architecture Diagram
 ![System Architecture Diagram](./resources/diagram/claritylab.architecture.drawio.svg)
 
-## Tech Stack
+## 🛠️ Tech Stack, Models & Infrastructure
 
-**Frontend:**
-- **Framework:** [Next.js 15](https://nextjs.org/) (App Router)
-- **UI & Styling:** React 19, Vanilla CSS Modules
-- **Rendering Elements:** `react-markdown`, `katex`
-- **Audio:** Web SpeechSynthesis API
+A powerful combination of modern web technologies and next-generation Google Cloud GenAI models, designed for performance, multimodality, and seamless scalability.
 
-**Backend (AI Engine):**
-- **Framework:** [FastAPI](https://fastapi.tiangolo.com/) w/ Uvicorn
-- **AI SDK:** `google-genai` (Configured for Vertex AI backend)
-- **Language:** Python 3.11+
+###  Frontend (The User Experience)
 
-**Google Cloud Services & Infrastructure:**
-- **Vertex AI:** Core machine learning platform powering Gemini 2.5, Imagen 3, Imagen 4 Ultra, and Veo 3.1 models.
-- **Cloud Run:** Serverless container hosting for the FastAPI backend.
-- **Artifact Registry:** Docker image storage for CI/CD deployments.
-- **Cloud Text-to-Speech:** High-quality Journey/Standard voices for narration.
-- **Frontend Hosting:** Vercel (with automated GitHub deployments).
+| Component | Technology | Role / Details |
+| :--- | :--- | :--- |
+| **Framework** | **Next.js 15** (App Router) | Utilizing Server Components, optimized rendering, and high-performance routing for a reactive chat interface. |
+| **UI & Styling** | **React 19** / Vanilla CSS Modules | Component-based development with maintenance-friendly, scoped styling without external framework bloat. |
+| **Rich Rendering** | **react-markdown** / **katex** | Dynamically rendering explanations, support for mathematical formulas, and formatting Mermaid.js diagrams. |
+| **Narration** | **Web SpeechSynthesis API** | Lightweight client-side Text-to-Speech, enabling on-demand narration directly in the browser. |
+
+###  Backend & AI Engine (The Intelligence)
+
+* **FastAPI:** A high-performance Python framework used for building robust, modern APIs with automatic interactive documentation (OpenAPI/Swagger).
+* **Google GenAI SDK (Vertex AI Configured):** The central orchestration layer that bridges our application logic directly to Google’s most powerful AI models.
+* **Python 3.11+:** Taking advantage of the latest performance optimizations and type-hinting features for reliable execution.
+
+###  Google Cloud Services & Core AI Models (The Multimodal Powerhouse)
+
+Our system leverages the singular **Vertex AI Platform** to access a suite of state-of-the-art GenAI models through a consolidated API:
+
+####  **Vertex AI Core Models**
+
+* **Gemini 2.5:** Powering the primary reasoning engine, complex text explanations, dynamic structured plan generation (POST /api/plan), and structured JSON output.
+* **Imagen 3 & Imagen 4 Ultra:** Generating high-quality, relevant illustrative images directly from text prompts within the explanation stream.
+* **Veo 3.1:** Creating high-fidelity video content to demonstrate dynamic concepts (e.g., complex physics simulations).
+
+#### 🛠️ **Infrastructure & Integration**
+
+* **Cloud Run:** Serverless container hosting for the FastAPI backend, providing automatic scaling and efficient cost management.
+* **Artifact Registry:** Secure storage for our Docker backend images, integrated with CI/CD deployment pipelines.
+* **Cloud Text-to-Speech (GCP TTS):** Providing premium, high-fidelity Journey and Standard voices for natural-sounding narration when higher audio quality is requested.
+
+###  Hosting & Deployment
+
+* **Vercel:** Optimized edge hosting platform for the Next.js frontend, featuring automated deployments triggered by GitHub commits.
 
 ## Directory Structure
 

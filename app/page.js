@@ -379,17 +379,38 @@ function AssistantBubble({ data }) {
   const [video, setVideo] = useState(null);
   const [followups, setFollowups] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [ttsError, setTtsError] = useState(false);
+  const voiceRef = useRef(null);
+  const stopRequestedRef = useRef(false);
   const prompts = data.prompts;
 
-  const [loading, setLoading] = useState({
-    explanation: true,
-    diagram: prompts?.diagram_prompt ? true : false,
-    image: prompts?.image_prompt ? true : false,
-    video: prompts?.video_prompt ? true : false,
-    followups: prompts?.followup_prompt ? true : false
-  });
-  const [status, setStatus] = useState("Generating explanation...");
-  const [expandedAsset, setExpandedAsset] = useState(null);
+  // Cleanup: Stop speech when component unmounts
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      stopKeepAlive();
+    };
+  }, []);
+
+  // Pre-load voices on mount so they're ready when the user clicks "Read Aloud"
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+    const pickVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return;
+      voiceRef.current =
+        voices.find(v => v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural")))
+        || voices.find(v => v.lang.startsWith("en"))
+        || voices[0];
+    };
+
+    pickVoice();
+    window.speechSynthesis.addEventListener("voiceschanged", pickVoice);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", pickVoice);
+  }, []);
 
   useEffect(() => {
     if (!prompts) return;
@@ -449,42 +470,131 @@ function AssistantBubble({ data }) {
 
   }, [prompts]);
 
+  /**
+   * Splits text into sentence-level chunks for SpeechSynthesis.
+   * Chromium browsers have a character limit per utterance; large text causes "synthesis-failed".
+   */
+  const chunkText = (text, maxLen = 160) => {
+    const sentences = text.match(/[^.!?]+[.!?]+\s*/g) || [text];
+    const chunks = [];
+    let current = "";
+    for (const sentence of sentences) {
+      if ((current + sentence).length > maxLen && current.length > 0) {
+        chunks.push(current.trim());
+        current = sentence;
+      } else {
+        current += sentence;
+      }
+    }
+    if (current.trim()) chunks.push(current.trim());
+    return chunks;
+  };
+
+  /**
+   * Fully synchronous speak handler — no async/await.
+   * Chunks are chained sequentially (next speaks after current ends).
+   */
+  const keepAliveRef = useRef(null);
+
+  const startKeepAlive = () => {
+    stopKeepAlive();
+    keepAliveRef.current = setInterval(() => {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 10000);
+  };
+
+  const stopKeepAlive = () => {
+    if (keepAliveRef.current) {
+      clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
+    }
+  };
+
   const speak = () => {
     if (!window.speechSynthesis) {
-      alert("Text-to-speech is not supported in your browser.");
+      setTtsError(true);
       return;
     }
 
     if (isSpeaking) {
+      stopRequestedRef.current = true;
       window.speechSynthesis.cancel();
+      stopKeepAlive();
       setIsSpeaking(false);
       return;
     }
 
-    // Use global toStr which handles multiple key patterns (text, content, etc.)
     const text = stripMarkdown(toStr(explanation));
     if (!text.trim()) return;
 
-    window.speechSynthesis.cancel(); 
-    
-    setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Select a natural voice if available
-      const voices = window.speechSynthesis.getVoices();
-      const preferred = voices.find(v => v.name.includes("Google") || v.name.includes("Natural"));
-      if (preferred) utterance.voice = preferred;
+    window.speechSynthesis.cancel();
+    stopRequestedRef.current = false;
+    setTtsError(false);
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
+    const chunks = chunkText(text);
+    if (chunks.length === 0) return;
+
+    const voice = voiceRef.current;
+    setIsSpeaking(true);
+    startKeepAlive();
+
+    const speakChunk = (index) => {
+      if (index >= chunks.length || stopRequestedRef.current) {
+        stopKeepAlive();
+        setIsSpeaking(false);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(chunks[index]);
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      } else {
+        utterance.lang = "en";
+      }
+      utterance.rate = 1;
+      utterance.pitch = 1;
+
+      utterance.onend = () => {
+        if (!stopRequestedRef.current) speakChunk(index + 1);
+      };
+      
       utterance.onerror = (e) => {
-        console.error("SpeechSynthesis error:", e);
+        if (e.error === "interrupted" || e.error === "canceled") return;
+
+        // On first chunk failure, retry once without a specific voice
+        if (index === 0 && voice && !stopRequestedRef.current) {
+          console.warn("SpeechSynthesis: retrying chunk 0 with generic lang...");
+          const retry = new SpeechSynthesisUtterance(chunks[0]);
+          retry.lang = "en";
+          retry.onend = () => {
+            if (!stopRequestedRef.current) speakChunk(1);
+          };
+          retry.onerror = (err) => {
+            console.error("SpeechSynthesis definitive failure:", err.error);
+            setTtsError(true);
+            stopKeepAlive();
+            setIsSpeaking(false);
+          };
+          window.speechSynthesis.speak(retry);
+          return;
+        }
+
+        console.warn("SpeechSynthesis error on chunk", index, ":", e.error);
+        if (e.error === "synthesis-failed" || e.error === "not-allowed") {
+          setTtsError(true);
+        }
+        stopKeepAlive();
         setIsSpeaking(false);
       };
 
       window.speechSynthesis.speak(utterance);
-      setIsSpeaking(true);
-    }, 50);
+    };
+
+    speakChunk(0);
   };
   const anyLoading = Object.values(loading).some(v => v);
 
@@ -526,8 +636,13 @@ function AssistantBubble({ data }) {
             </section>
           )}
 
-          <button className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""}`} onClick={speak} disabled={!explanation}>
-            <Icon name={isSpeaking ? "moon" : "volume"} /> {isSpeaking ? "Stop Reading" : "Read Aloud"}
+          <button 
+            className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""} ${ttsError ? styles.ttsBtnError : ""}`} 
+            onClick={speak} 
+            disabled={!explanation || (ttsError && !isSpeaking)}
+          >
+            <Icon name={ttsError ? "grid" : isSpeaking ? "moon" : "volume"} /> 
+            {ttsError ? "Not Supported" : isSpeaking ? "Stop Reading" : "Read Aloud"}
           </button>
         </div>
 

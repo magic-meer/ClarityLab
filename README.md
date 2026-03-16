@@ -191,5 +191,12 @@ We welcome contributions from the community! If you're inspired by the **Gemini 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## Contributors
+
+A huge thank you to the following individuals who helped build ClarityLab:
+- **[Anees Ahmed](https://github.com/IaM-AnEeS)** (Backend prototype & Docker)
+- **[Maryam Naqvi](https://github.com/maryam-naqvi)** (Documentation, blog & demo video)
+
+See [CONTRIBUTORS.md](./CONTRIBUTORS.md) for more details.

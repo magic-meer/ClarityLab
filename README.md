@@ -18,6 +18,25 @@ When you ask a question, ClarityLab acts as an intelligent agent. It dynamically
 - **Educational Videos:** Synthetic learning visual sequences powered by Veo 3.1 on Vertex AI.
 - **Narration:** Read-aloud Native Text-to-Speech integration for auditory learners.
 
+## Project Showcase
+
+Watch ClarityLab in action showing its multimodal AI pipeline and responsive UI:
+
+<video src="./resources/demo_videos/multimodal_demo.mp4" controls="controls" muted="muted" style="max-width:100%;">
+  Your browser does not support the video tag.
+</video>
+
+### Screenshots
+
+<div align="center">
+  <img src="./resources/images/multimodal_working.png" alt="Multimodal AI Working" width="48%" />
+  <img src="./resources/images/ui_in_light_mode.png" alt="Light Mode UI" width="48%" />
+  <br>
+  <br>
+  <img src="./resources/images/ui_on_mobile.png" alt="UI on Mobile" width="48%" />
+  <img src="./resources/images/generating_on_mobile.png" alt="Generating on Mobile" width="48%" />
+</div>
+
 ## System Architecture
 
 ClarityLab consists of a **Next.js 15 frontend** that communicates with a **FastAPI backend (AI Engine)**. The backend acts as an orchestrator, securely interacting with Google Cloud Vertex AI to generate parallel multimodal responses.

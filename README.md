@@ -22,9 +22,8 @@ When you ask a question, ClarityLab acts as an intelligent agent. It dynamically
 
 Watch ClarityLab in action showing its multimodal AI pipeline and responsive UI:
 
-<video src="./resources/demo_videos/multimodal_demo.mp4" controls="controls" muted="muted" style="max-width:100%;">
-  Your browser does not support the video tag.
-</video>
+
+https://github.com/user-attachments/assets/0012b84a-c8a1-4b49-9de4-6c7f59db217b
 
 ### Screenshots
 

@@ -839,6 +839,13 @@
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.ttsBtnError {
+  background: color-mix(in srgb, #ff4d4f 10%, var(--bg-card)) !important;
+  border-color: #ff4d4f !important;
+  color: #c8292a !important;
+  cursor: not-allowed;
+}
+
 
 /* ===== Animations ===== */
 .fade-in {

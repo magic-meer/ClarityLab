@@ -41,7 +41,7 @@ https://github.com/user-attachments/assets/0012b84a-c8a1-4b49-9de4-6c7f59db217b
 ClarityLab consists of a **Next.js 15 frontend** that communicates with a **FastAPI backend (AI Engine)**. The backend acts as an orchestrator, securely interacting with Google Cloud Vertex AI to generate parallel multimodal responses.
 
 ### High-Level Architecture Diagram
-![System Architecture](./resources/diagram/claritylab.architecture.drawio.svg)
+![System Architecture Diagram](./resources/diagram/claritylab.architecture.drawio.svg)
 
 ## Tech Stack
 

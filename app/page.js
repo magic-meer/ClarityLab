@@ -127,10 +127,10 @@ export default function Home() {
   const [generateDiagram, setGenerateDiagram] = useState("off");
   const [generateImage, setGenerateImage] = useState("off");
   const [generateVideo, setGenerateVideo] = useState("off");
-  
+
   const [showDifficultyMenu, setShowDifficultyMenu] = useState(false);
   const [showFeaturesMenu, setShowFeaturesMenu] = useState(false);
-  
+
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -141,7 +141,7 @@ export default function Home() {
   const sessionLabel = hasConversation
     ? `Session • ${conversations.length} message${conversations.length === 1 ? "" : "s"}`
     : "New session";
-  
+
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
   const diffMenuRef = useRef(null);
@@ -163,7 +163,7 @@ export default function Home() {
     // Explicitly check if user has manually set a theme before saving
     // This allows us to potentially clear localStorage later to go back to system sync
     if (localStorage.getItem("theme") || theme !== "light") {
-       localStorage.setItem("theme", theme);
+      localStorage.setItem("theme", theme);
     }
   }, [theme]);
 
@@ -207,8 +207,8 @@ export default function Home() {
       const planRes = await fetch("/api/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          question: userQ, 
+        body: JSON.stringify({
+          question: userQ,
           difficulty,
           generate_diagram: generateDiagram === "auto",
           generate_image: generateImage === "auto",
@@ -216,17 +216,17 @@ export default function Home() {
           generate_audio: false // Handled via TTS button now
         }),
       });
-      
+
       const planData = await planRes.json();
       if (planData.status !== "success") throw new Error(planData.message || "Failed to create plan");
 
       const plan = planData.plan;
-      
+
       // Add initial assistant message with placeholders
       setConversations(prev => [
         ...prev,
-        { 
-          role: "assistant", 
+        {
+          role: "assistant",
           topic: plan.topic,
           difficulty: plan.difficulty,
           explanation: null, // Loading
@@ -441,7 +441,7 @@ function AssistantBubble({ data }) {
         const d = await res.json();
         setExplanation(d.data?.text || d.data);
       } catch (e) { console.error(e); }
-      setLoading(prev => {
+      setBubbleLoading(prev => {
         const next = { ...prev, explanation: false };
         setStatus(updateStatus(next));
         return next;
@@ -460,7 +460,7 @@ function AssistantBubble({ data }) {
         const d = await res.json();
         setter(d.data);
       } catch (e) { console.error(e); }
-      setLoading(prev => {
+      setBubbleLoading(prev => {
         const next = { ...prev, [key]: false };
         setStatus(updateStatus(next));
         return next;
@@ -526,6 +526,7 @@ function AssistantBubble({ data }) {
 
     if (isSpeaking) {
       stopRequestedRef.current = true;
+      stopRequestedRef.current = true;
       window.speechSynthesis.cancel();
       stopKeepAlive();
       setIsSpeaking(false);
@@ -566,7 +567,7 @@ function AssistantBubble({ data }) {
       utterance.onend = () => {
         if (!stopRequestedRef.current) speakChunk(index + 1);
       };
-      
+
       utterance.onerror = (e) => {
         if (e.error === "interrupted" || e.error === "canceled") return;
 
@@ -601,90 +602,93 @@ function AssistantBubble({ data }) {
 
     speakChunk(0);
   };
-  const anyLoading = Object.values(loading).some(v => v);
 
-  return (
-    <div className={styles.assistantContent}>
-      <div className={styles.textbookHeader}>
-        <h2 className={styles.topicTitle}>{data.topic}</h2>
-        <span className={styles.difficultyTag}>{data.difficulty}</span>
-      </div>
+  speakChunk(0);
+};
+const anyLoading = Object.values(bubbleLoading).some(v => v);
 
-      {(video || loading.video) && (
-        <div className={styles.videoHero}>
-           {video ? (
-             <video src={`data:${video.mime_type || 'video/mp4'};base64,${video.video_base64}`} controls autoPlay loop />
-           ) : (
-              <div className={styles.videoPlaceholder}>
-               <div className={styles.videoPlaceholderIcon}><Icon name="grid" /></div>
-               <span>Generating your educational video...</span>
-             </div>
-           )}
-        </div>
-      )}
-
-      <div className={styles.textbookLayout}>
-        <div className={styles.explanationCol}>
-          <section className={styles.responseCard}>
-            <h3 className={styles.responseCardTitle}>Explanation</h3>
-            {loading.explanation ? (
-              <div className={styles.skeleton}>Generating explanation...</div>
-            ) : (
-              <MarkdownRenderer content={toStr(explanation)} />
-            )}
-          </section>
-
-          {followups && (
-            <section className={styles.responseCard}>
-              <h4 className={styles.responseCardTitle}>Dive Deeper</h4>
-              <MarkdownRenderer content={toStr(followups)} />
-            </section>
-          )}
-
-          <button 
-            className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""} ${ttsError ? styles.ttsBtnError : ""}`} 
-            onClick={speak} 
-            disabled={!explanation || (ttsError && !isSpeaking)}
-          >
-            <Icon name={ttsError ? "grid" : isSpeaking ? "moon" : "volume"} /> 
-            {ttsError ? "Not Supported" : isSpeaking ? "Stop Reading" : "Read Aloud"}
-          </button>
-        </div>
-
-        <aside className={styles.assetSidebar}>
-          {diagram && diagram.image_base64 && (
-            <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'diagram', data: diagram })}>
-              <h5>Visual Diagram</h5>
-              <img src={`data:${diagram.mime_type || 'image/jpeg'};base64,${diagram.image_base64}`} alt="Diagram" />
-            </section>
-          )}
-          {image && (
-            <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'image', data: image })}>
-              <h5>Illustration</h5>
-              <img src={`data:${image.mime_type || 'image/jpeg'};base64,${image.image_base64}`} alt="Illustration" />
-            </section>
-          )}
-        </aside>
-      </div>
-
-      {anyLoading && status && (
-        <CircularProgress status={status} />
-      )}
-
-      {expandedAsset && (
-        <div className={styles.modalOverlay} onClick={() => setExpandedAsset(null)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <button className={styles.closeModal} onClick={() => setExpandedAsset(null)}>×</button>
-            {expandedAsset.type === 'image' || expandedAsset.type === 'diagram' ? (
-              <img src={`data:${expandedAsset.data.mime_type || 'image/jpeg'};base64,${expandedAsset.data.image_base64}`} alt="Expanded view" />
-            ) : (
-              <div className={styles.modalDiagram}>
-                <p>Unable to display</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+return (
+  <div className={styles.assistantContent}>
+    <div className={styles.textbookHeader}>
+      <h2 className={styles.topicTitle}>{data.topic}</h2>
+      <span className={styles.difficultyTag}>{data.difficulty}</span>
     </div>
-  );
+
+    {(video || bubbleLoading.video) && (
+      <div className={styles.videoHero}>
+        {video ? (
+          <video src={`data:${video.mime_type || 'video/mp4'};base64,${video.video_base64}`} controls autoPlay loop />
+        ) : (
+          <div className={styles.videoPlaceholder}>
+            <div className={styles.videoPlaceholderIcon}><Icon name="grid" /></div>
+            <span>Generating your educational video...</span>
+          </div>
+        )}
+      </div>
+    )}
+
+    <div className={styles.textbookLayout}>
+      <div className={styles.explanationCol}>
+        <section className={styles.responseCard}>
+          <h3 className={styles.responseCardTitle}>Explanation</h3>
+          {bubbleLoading.explanation ? (
+            <div className={styles.skeleton}>Generating explanation...</div>
+          ) : (
+            <MarkdownRenderer content={toStr(explanation)} />
+          )}
+        </section>
+
+        {followups && (
+          <section className={styles.responseCard}>
+            <h4 className={styles.responseCardTitle}>Dive Deeper</h4>
+            <MarkdownRenderer content={toStr(followups)} />
+          </section>
+        )}
+
+        <button
+          className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""} ${ttsError ? styles.ttsBtnError : ""}`}
+          onClick={speak}
+          disabled={!explanation || (ttsError && !isSpeaking)}
+        >
+          <Icon name={ttsError ? "grid" : isSpeaking ? "moon" : "volume"} />
+          {ttsError ? "Not Supported" : isSpeaking ? "Stop Reading" : "Read Aloud"}
+        </button>
+      </div>
+
+      <aside className={styles.assetSidebar}>
+        {diagram && diagram.image_base64 && (
+          <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'diagram', data: diagram })}>
+            <h5>Visual Diagram</h5>
+            <img src={`data:${diagram.mime_type || 'image/jpeg'};base64,${diagram.image_base64}`} alt="Diagram" />
+          </section>
+        )}
+        {image && (
+          <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'image', data: image })}>
+            <h5>Illustration</h5>
+            <img src={`data:${image.mime_type || 'image/jpeg'};base64,${image.image_base64}`} alt="Illustration" />
+          </section>
+        )}
+      </aside>
+    </div>
+
+    {anyLoading && status && (
+      <CircularProgress status={status} />
+    )}
+
+    {expandedAsset && (
+      <div className={styles.modalOverlay} onClick={() => setExpandedAsset(null)}>
+        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+          <button className={styles.closeModal} onClick={() => setExpandedAsset(null)}>×</button>
+          {expandedAsset.type === 'image' || expandedAsset.type === 'diagram' ? (
+            <img src={`data:${expandedAsset.data.mime_type || 'image/jpeg'};base64,${expandedAsset.data.image_base64}`} alt="Expanded view" />
+          ) : (
+            <div className={styles.modalDiagram}>
+              <p>Unable to display</p>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+);
 }

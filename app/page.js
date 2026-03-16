@@ -385,36 +385,60 @@ function AssistantBubble({ data }) {
   const [followups, setFollowups] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsError, setTtsError] = useState(false);
-  const voiceRef = useRef(null);
-  const stopRequestedRef = useRef(false);
   const prompts = data.prompts;
 
-  // Cleanup: Stop speech when component unmounts
-  useEffect(() => {
-    return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      stopKeepAlive();
-    };
-  }, []);
+  const [bubbleLoading, setBubbleLoading] = useState({
+    explanation: true,
+    diagram: prompts?.diagram_prompt ? true : false,
+    image: prompts?.image_prompt ? true : false,
+    video: prompts?.video_prompt ? true : false,
+    followups: prompts?.followup_prompt ? true : false
+  });
+  const [status, setStatus] = useState("Generating explanation...");
+  const [expandedAsset, setExpandedAsset] = useState(null);
+  
+  const voiceRef = useRef(null);
+  const stopRequestedRef = useRef(false);
+  const keepAliveRef = useRef(null);
 
-  // Pre-load voices on mount so they're ready when the user clicks "Read Aloud"
+  const startKeepAlive = () => {
+    if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+    keepAliveRef.current = setInterval(() => {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 10000);
+  };
+
+  const stopKeepAlive = () => {
+    if (keepAliveRef.current) {
+      clearInterval(keepAliveRef.current);
+      keepAliveRef.current = null;
+    }
+  };
+
+  // Pre-load voices
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
-
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices();
       if (!voices.length) return;
-      voiceRef.current =
-        voices.find(v => v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural")))
+      voiceRef.current = voices.find(v => v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural")))
         || voices.find(v => v.lang.startsWith("en"))
         || voices[0];
     };
-
     pickVoice();
     window.speechSynthesis.addEventListener("voiceschanged", pickVoice);
     return () => window.speechSynthesis.removeEventListener("voiceschanged", pickVoice);
+  }, []);
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (keepAliveRef.current) clearInterval(keepAliveRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -475,10 +499,6 @@ function AssistantBubble({ data }) {
 
   }, [prompts]);
 
-  /**
-   * Splits text into sentence-level chunks for SpeechSynthesis.
-   * Chromium browsers have a character limit per utterance; large text causes "synthesis-failed".
-   */
   const chunkText = (text, maxLen = 160) => {
     const sentences = text.match(/[^.!?]+[.!?]+\s*/g) || [text];
     const chunks = [];
@@ -495,29 +515,6 @@ function AssistantBubble({ data }) {
     return chunks;
   };
 
-  /**
-   * Fully synchronous speak handler — no async/await.
-   * Chunks are chained sequentially (next speaks after current ends).
-   */
-  const keepAliveRef = useRef(null);
-
-  const startKeepAlive = () => {
-    stopKeepAlive();
-    keepAliveRef.current = setInterval(() => {
-      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
-      }
-    }, 10000);
-  };
-
-  const stopKeepAlive = () => {
-    if (keepAliveRef.current) {
-      clearInterval(keepAliveRef.current);
-      keepAliveRef.current = null;
-    }
-  };
-
   const speak = () => {
     if (!window.speechSynthesis) {
       setTtsError(true);
@@ -525,7 +522,6 @@ function AssistantBubble({ data }) {
     }
 
     if (isSpeaking) {
-      stopRequestedRef.current = true;
       stopRequestedRef.current = true;
       window.speechSynthesis.cancel();
       stopKeepAlive();
@@ -539,35 +535,29 @@ function AssistantBubble({ data }) {
     window.speechSynthesis.cancel();
     stopRequestedRef.current = false;
     setTtsError(false);
-
     const chunks = chunkText(text);
     if (chunks.length === 0) return;
 
-    const voice = voiceRef.current;
     setIsSpeaking(true);
     startKeepAlive();
-
     const speakChunk = (index) => {
       if (index >= chunks.length || stopRequestedRef.current) {
-        stopKeepAlive();
         setIsSpeaking(false);
         return;
       }
 
       const utterance = new SpeechSynthesisUtterance(chunks[index]);
+      const voice = voiceRef.current;
       if (voice) {
         utterance.voice = voice;
         utterance.lang = voice.lang;
       } else {
         utterance.lang = "en";
       }
-      utterance.rate = 1;
-      utterance.pitch = 1;
 
       utterance.onend = () => {
         if (!stopRequestedRef.current) speakChunk(index + 1);
       };
-
       utterance.onerror = (e) => {
         if (e.error === "interrupted" || e.error === "canceled") return;
 
@@ -602,92 +592,90 @@ function AssistantBubble({ data }) {
 
     speakChunk(0);
   };
+  const anyLoading = Object.values(bubbleLoading).some(v => v);
 
-  speakChunk(0);
-};
-const anyLoading = Object.values(bubbleLoading).some(v => v);
-
-return (
-  <div className={styles.assistantContent}>
-    <div className={styles.textbookHeader}>
-      <h2 className={styles.topicTitle}>{data.topic}</h2>
-      <span className={styles.difficultyTag}>{data.difficulty}</span>
-    </div>
-
-    {(video || bubbleLoading.video) && (
-      <div className={styles.videoHero}>
-        {video ? (
-          <video src={`data:${video.mime_type || 'video/mp4'};base64,${video.video_base64}`} controls autoPlay loop />
-        ) : (
-          <div className={styles.videoPlaceholder}>
-            <div className={styles.videoPlaceholderIcon}><Icon name="grid" /></div>
-            <span>Generating your educational video...</span>
-          </div>
-        )}
-      </div>
-    )}
-
-    <div className={styles.textbookLayout}>
-      <div className={styles.explanationCol}>
-        <section className={styles.responseCard}>
-          <h3 className={styles.responseCardTitle}>Explanation</h3>
-          {bubbleLoading.explanation ? (
-            <div className={styles.skeleton}>Generating explanation...</div>
-          ) : (
-            <MarkdownRenderer content={toStr(explanation)} />
-          )}
-        </section>
-
-        {followups && (
-          <section className={styles.responseCard}>
-            <h4 className={styles.responseCardTitle}>Dive Deeper</h4>
-            <MarkdownRenderer content={toStr(followups)} />
-          </section>
-        )}
-
-        <button
-          className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""} ${ttsError ? styles.ttsBtnError : ""}`}
-          onClick={speak}
-          disabled={!explanation || (ttsError && !isSpeaking)}
-        >
-          <Icon name={ttsError ? "grid" : isSpeaking ? "moon" : "volume"} />
-          {ttsError ? "Not Supported" : isSpeaking ? "Stop Reading" : "Read Aloud"}
-        </button>
+  return (
+    <div className={styles.assistantContent}>
+      <div className={styles.textbookHeader}>
+        <h2 className={styles.topicTitle}>{data.topic}</h2>
+        <span className={styles.difficultyTag}>{data.difficulty}</span>
       </div>
 
-      <aside className={styles.assetSidebar}>
-        {diagram && diagram.image_base64 && (
-          <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'diagram', data: diagram })}>
-            <h5>Visual Diagram</h5>
-            <img src={`data:${diagram.mime_type || 'image/jpeg'};base64,${diagram.image_base64}`} alt="Diagram" />
-          </section>
-        )}
-        {image && (
-          <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'image', data: image })}>
-            <h5>Illustration</h5>
-            <img src={`data:${image.mime_type || 'image/jpeg'};base64,${image.image_base64}`} alt="Illustration" />
-          </section>
-        )}
-      </aside>
-    </div>
-
-    {anyLoading && status && (
-      <CircularProgress status={status} />
-    )}
-
-    {expandedAsset && (
-      <div className={styles.modalOverlay} onClick={() => setExpandedAsset(null)}>
-        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-          <button className={styles.closeModal} onClick={() => setExpandedAsset(null)}>×</button>
-          {expandedAsset.type === 'image' || expandedAsset.type === 'diagram' ? (
-            <img src={`data:${expandedAsset.data.mime_type || 'image/jpeg'};base64,${expandedAsset.data.image_base64}`} alt="Expanded view" />
+      {(video || bubbleLoading.video) && (
+        <div className={styles.videoHero}>
+          {video ? (
+            <video src={`data:${video.mime_type || 'video/mp4'};base64,${video.video_base64}`} controls autoPlay loop />
           ) : (
-            <div className={styles.modalDiagram}>
-              <p>Unable to display</p>
+            <div className={styles.videoPlaceholder}>
+              <div className={styles.videoPlaceholderIcon}><Icon name="grid" /></div>
+              <span>Generating your educational video...</span>
             </div>
           )}
         </div>
+      )}
+
+      <div className={styles.textbookLayout}>
+        <div className={styles.explanationCol}>
+          <section className={styles.responseCard}>
+            <h3 className={styles.responseCardTitle}>Explanation</h3>
+            {bubbleLoading.explanation ? (
+              <div className={styles.skeleton}>Generating explanation...</div>
+            ) : (
+              <MarkdownRenderer content={toStr(explanation)} />
+            )}
+          </section>
+
+          {followups && (
+            <section className={styles.responseCard}>
+              <h4 className={styles.responseCardTitle}>Dive Deeper</h4>
+              <MarkdownRenderer content={toStr(followups)} />
+            </section>
+          )}
+
+          <button
+            className={`${styles.ttsBtn} ${isSpeaking ? styles.ttsBtnActive : ""} ${ttsError ? styles.ttsBtnError : ""}`}
+            onClick={speak}
+            disabled={!explanation || (ttsError && !isSpeaking)}
+          >
+            <Icon name={ttsError ? "grid" : isSpeaking ? "moon" : "volume"} />
+            {ttsError ? "Not Supported" : isSpeaking ? "Stop Reading" : "Read Aloud"}
+          </button>
+        </div>
+
+        <aside className={styles.assetSidebar}>
+          {diagram && diagram.image_base64 && (
+            <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'diagram', data: diagram })}>
+              <h5>Visual Diagram</h5>
+              <img src={`data:${diagram.mime_type || 'image/jpeg'};base64,${diagram.image_base64}`} alt="Diagram" />
+            </section>
+          )}
+          {image && (
+            <section className={`${styles.assetCard} ${styles.expandable}`} onClick={() => setExpandedAsset({ type: 'image', data: image })}>
+              <h5>Illustration</h5>
+              <img src={`data:${image.mime_type || 'image/jpeg'};base64,${image.image_base64}`} alt="Illustration" />
+            </section>
+          )}
+        </aside>
       </div>
-    )}
-  </div>
-);
+
+      {anyLoading && status && (
+        <CircularProgress status={status} />
+      )}
+
+      {expandedAsset && (
+        <div className={styles.modalOverlay} onClick={() => setExpandedAsset(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <button className={styles.closeModal} onClick={() => setExpandedAsset(null)}>×</button>
+            {expandedAsset.type === 'image' || expandedAsset.type === 'diagram' ? (
+              <img src={`data:${expandedAsset.data.mime_type || 'image/jpeg'};base64,${expandedAsset.data.image_base64}`} alt="Expanded view" />
+            ) : (
+              <div className={styles.modalDiagram}>
+                <p>Unable to display</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -542,6 +542,7 @@ function AssistantBubble({ data }) {
     startKeepAlive();
     const speakChunk = (index) => {
       if (index >= chunks.length || stopRequestedRef.current) {
+        stopKeepAlive();
         setIsSpeaking(false);
         return;
       }
